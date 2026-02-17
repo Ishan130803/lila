@@ -10,13 +10,13 @@ export interface DFA {
 }
 
 type Token =
-  | { type: "LITERAL"; value: string }
-  | { type: "UNION" }
-  | { type: "CONCAT" }
-  | { type: "STAR" }
-  | { type: "OPTIONAL" }
-  | { type: "LPAREN" }
-  | { type: "RPAREN" };
+  | { type: 'LITERAL'; value: string }
+  | { type: 'UNION' }
+  | { type: 'CONCAT' }
+  | { type: 'STAR' }
+  | { type: 'OPTIONAL' }
+  | { type: 'LPAREN' }
+  | { type: 'RPAREN' };
 
 interface NFA {
   start: number;
@@ -30,7 +30,7 @@ interface NFAFragment {
   accept: number;
 }
 
-const OP_PRECEDENCE: Record<"UNION" | "CONCAT", number> = {
+const OP_PRECEDENCE: Record<'UNION' | 'CONCAT', number> = {
   UNION: 1,
   CONCAT: 2,
 };
@@ -47,18 +47,14 @@ function addSymbolTransition(
   bySymbol.get(symbol)!.add(to);
 }
 
-function addEpsilonTransition(
-  epsilonTransitions: Map<number, Set<number>>,
-  from: number,
-  to: number,
-): void {
+function addEpsilonTransition(epsilonTransitions: Map<number, Set<number>>, from: number, to: number): void {
   if (!epsilonTransitions.has(from)) epsilonTransitions.set(from, new Set());
   epsilonTransitions.get(from)!.add(to);
 }
 
 function tokenize(regex: string): Token[] {
   if (regex.length === 0) {
-    throw new Error("Regex cannot be empty");
+    throw new Error('Regex cannot be empty');
   }
 
   const tokens: Token[] = [];
@@ -66,27 +62,27 @@ function tokenize(regex: string): Token[] {
   for (let i = 0; i < regex.length; i++) {
     const ch = regex[i];
 
-    if (ch === "\\") {
+    if (ch === '\\') {
       if (i === regex.length - 1) {
-        throw new Error("Invalid escape: trailing backslash");
+        throw new Error('Invalid escape: trailing backslash');
       }
       i += 1;
-      tokens.push({ type: "LITERAL", value: regex[i] });
+      tokens.push({ type: 'LITERAL', value: regex[i] });
       continue;
     }
 
-    if (ch === "|") {
-      tokens.push({ type: "UNION" });
-    } else if (ch === "*") {
-      tokens.push({ type: "STAR" });
-    } else if (ch === "?") {
-      tokens.push({ type: "OPTIONAL" });
-    } else if (ch === "(") {
-      tokens.push({ type: "LPAREN" });
-    } else if (ch === ")") {
-      tokens.push({ type: "RPAREN" });
+    if (ch === '|') {
+      tokens.push({ type: 'UNION' });
+    } else if (ch === '*') {
+      tokens.push({ type: 'STAR' });
+    } else if (ch === '?') {
+      tokens.push({ type: 'OPTIONAL' });
+    } else if (ch === '(') {
+      tokens.push({ type: 'LPAREN' });
+    } else if (ch === ')') {
+      tokens.push({ type: 'RPAREN' });
     } else {
-      tokens.push({ type: "LITERAL", value: ch });
+      tokens.push({ type: 'LITERAL', value: ch });
     }
   }
 
@@ -95,15 +91,12 @@ function tokenize(regex: string): Token[] {
 
 function isAtomEnd(token: Token): boolean {
   return (
-    token.type === "LITERAL" ||
-    token.type === "RPAREN" ||
-    token.type === "STAR" ||
-    token.type === "OPTIONAL"
+    token.type === 'LITERAL' || token.type === 'RPAREN' || token.type === 'STAR' || token.type === 'OPTIONAL'
   );
 }
 
 function isAtomStart(token: Token): boolean {
-  return token.type === "LITERAL" || token.type === "LPAREN";
+  return token.type === 'LITERAL' || token.type === 'LPAREN';
 }
 
 function insertExplicitConcatenation(tokens: Token[]): Token[] {
@@ -117,7 +110,7 @@ function insertExplicitConcatenation(tokens: Token[]): Token[] {
 
     const next = tokens[i + 1];
     if (isAtomEnd(current) && isAtomStart(next)) {
-      result.push({ type: "CONCAT" });
+      result.push({ type: 'CONCAT' });
     }
   }
 
@@ -131,29 +124,29 @@ function toPostfix(tokens: Token[]): Token[] {
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i];
 
-    if (token.type === "LITERAL") {
+    if (token.type === 'LITERAL') {
       output.push(token);
       continue;
     }
 
-    if (token.type === "STAR") {
+    if (token.type === 'STAR') {
       const prev = tokens[i - 1];
-      if (!prev || !(prev.type === "LITERAL" || prev.type === "RPAREN" || prev.type === "STAR")) {
+      if (!prev || !(prev.type === 'LITERAL' || prev.type === 'RPAREN' || prev.type === 'STAR')) {
         throw new Error("Invalid '*' usage");
       }
       output.push(token);
       continue;
     }
 
-    if (token.type === "OPTIONAL") {
+    if (token.type === 'OPTIONAL') {
       const prev = tokens[i - 1];
       if (
         !prev ||
         !(
-          prev.type === "LITERAL" ||
-          prev.type === "RPAREN" ||
-          prev.type === "STAR" ||
-          prev.type === "OPTIONAL"
+          prev.type === 'LITERAL' ||
+          prev.type === 'RPAREN' ||
+          prev.type === 'STAR' ||
+          prev.type === 'OPTIONAL'
         )
       ) {
         throw new Error("Invalid '?' usage");
@@ -162,49 +155,46 @@ function toPostfix(tokens: Token[]): Token[] {
       continue;
     }
 
-    if (token.type === "LPAREN") {
+    if (token.type === 'LPAREN') {
       operators.push(token);
       continue;
     }
 
-    if (token.type === "RPAREN") {
+    if (token.type === 'RPAREN') {
       let foundLeft = false;
       while (operators.length > 0) {
         const top = operators.pop()!;
-        if (top.type === "LPAREN") {
+        if (top.type === 'LPAREN') {
           foundLeft = true;
           break;
         }
         output.push(top);
       }
       if (!foundLeft) {
-        throw new Error("Mismatched parentheses");
+        throw new Error('Mismatched parentheses');
       }
       continue;
     }
 
-    if (token.type === "UNION" || token.type === "CONCAT") {
+    if (token.type === 'UNION' || token.type === 'CONCAT') {
       const prev = tokens[i - 1];
       const next = tokens[i + 1];
 
       if (!prev || !next) {
-        throw new Error("Operator cannot be at regex boundary");
+        throw new Error('Operator cannot be at regex boundary');
       }
 
       const prevValid =
-        prev.type === "LITERAL" ||
-        prev.type === "RPAREN" ||
-        prev.type === "STAR" ||
-        prev.type === "OPTIONAL";
-      const nextValid = next.type === "LITERAL" || next.type === "LPAREN";
+        prev.type === 'LITERAL' || prev.type === 'RPAREN' || prev.type === 'STAR' || prev.type === 'OPTIONAL';
+      const nextValid = next.type === 'LITERAL' || next.type === 'LPAREN';
 
       if (!prevValid || !nextValid) {
-        throw new Error("Invalid operator placement");
+        throw new Error('Invalid operator placement');
       }
 
       while (operators.length > 0) {
         const top = operators[operators.length - 1];
-        if (top.type !== "UNION" && top.type !== "CONCAT") break;
+        if (top.type !== 'UNION' && top.type !== 'CONCAT') break;
         if (OP_PRECEDENCE[top.type] >= OP_PRECEDENCE[token.type]) {
           output.push(operators.pop()!);
         } else {
@@ -219,8 +209,8 @@ function toPostfix(tokens: Token[]): Token[] {
 
   while (operators.length > 0) {
     const top = operators.pop()!;
-    if (top.type === "LPAREN" || top.type === "RPAREN") {
-      throw new Error("Mismatched parentheses");
+    if (top.type === 'LPAREN' || top.type === 'RPAREN') {
+      throw new Error('Mismatched parentheses');
     }
     output.push(top);
   }
@@ -237,7 +227,7 @@ function buildNFAFromPostfix(postfix: Token[]): NFA {
   const stack: NFAFragment[] = [];
 
   for (const token of postfix) {
-    if (token.type === "LITERAL") {
+    if (token.type === 'LITERAL') {
       const start = newState();
       const accept = newState();
       addSymbolTransition(transitions, start, token.value, accept);
@@ -245,8 +235,8 @@ function buildNFAFromPostfix(postfix: Token[]): NFA {
       continue;
     }
 
-    if (token.type === "CONCAT") {
-      if (stack.length < 2) throw new Error("Invalid regex for concatenation");
+    if (token.type === 'CONCAT') {
+      if (stack.length < 2) throw new Error('Invalid regex for concatenation');
       const right = stack.pop()!;
       const left = stack.pop()!;
       addEpsilonTransition(epsilonTransitions, left.accept, right.start);
@@ -254,8 +244,8 @@ function buildNFAFromPostfix(postfix: Token[]): NFA {
       continue;
     }
 
-    if (token.type === "UNION") {
-      if (stack.length < 2) throw new Error("Invalid regex for union");
+    if (token.type === 'UNION') {
+      if (stack.length < 2) throw new Error('Invalid regex for union');
       const right = stack.pop()!;
       const left = stack.pop()!;
       const start = newState();
@@ -268,8 +258,8 @@ function buildNFAFromPostfix(postfix: Token[]): NFA {
       continue;
     }
 
-    if (token.type === "STAR") {
-      if (stack.length < 1) throw new Error("Invalid regex for Kleene star");
+    if (token.type === 'STAR') {
+      if (stack.length < 1) throw new Error('Invalid regex for Kleene star');
       const fragment = stack.pop()!;
       const start = newState();
       const accept = newState();
@@ -281,8 +271,8 @@ function buildNFAFromPostfix(postfix: Token[]): NFA {
       continue;
     }
 
-    if (token.type === "OPTIONAL") {
-      if (stack.length < 1) throw new Error("Invalid regex for optional operator");
+    if (token.type === 'OPTIONAL') {
+      if (stack.length < 1) throw new Error('Invalid regex for optional operator');
       const fragment = stack.pop()!;
       const start = newState();
       const accept = newState();
@@ -295,7 +285,7 @@ function buildNFAFromPostfix(postfix: Token[]): NFA {
   }
 
   if (stack.length !== 1) {
-    throw new Error("Invalid regex expression");
+    throw new Error('Invalid regex expression');
   }
 
   const root = stack[0];
@@ -307,10 +297,7 @@ function buildNFAFromPostfix(postfix: Token[]): NFA {
   };
 }
 
-function epsilonClosure(
-  states: Set<number>,
-  epsilonTransitions: Map<number, Set<number>>,
-): Set<number> {
+function epsilonClosure(states: Set<number>, epsilonTransitions: Map<number, Set<number>>): Set<number> {
   const closure = new Set<number>(states);
   const stack = [...states];
 
@@ -358,12 +345,12 @@ function collectAlphabet(transitions: Map<number, Map<string, Set<number>>>): Se
 }
 
 function stateSetKey(states: Set<number>): string {
-  return [...states].sort((a, b) => a - b).join(",");
+  return [...states].sort((a, b) => a - b).join(',');
 }
 
 function nfaToDfa(nfa: NFA): DFA {
   const alphabet = [...collectAlphabet(nfa.transitions)];
-  const dfaTransitions: DFA["transitions"] = {};
+  const dfaTransitions: DFA['transitions'] = {};
   const dfaAcceptStates = new Set<string>();
 
   const initialClosure = epsilonClosure(new Set([nfa.start]), nfa.epsilonTransitions);
@@ -373,9 +360,9 @@ function nfaToDfa(nfa: NFA): DFA {
   const dfaStateToSet = new Map<string, Set<number>>();
   const queue: string[] = [];
 
-  keyToDfaState.set(initialKey, "0");
-  dfaStateToSet.set("0", initialClosure);
-  queue.push("0");
+  keyToDfaState.set(initialKey, '0');
+  dfaStateToSet.set('0', initialClosure);
+  queue.push('0');
 
   while (queue.length > 0) {
     const dfaState = queue.shift()!;
@@ -407,7 +394,7 @@ function nfaToDfa(nfa: NFA): DFA {
   }
 
   return {
-    initialState: "0",
+    initialState: '0',
     transitions: dfaTransitions,
     acceptStates: dfaAcceptStates,
     numberOfStates: keyToDfaState.size,
