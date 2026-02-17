@@ -100,11 +100,11 @@
   <string name="inOrderToAppearsYouMust">Како би ушао на %1$s, мораш:</string>
   <string name="ratingLeaderboards">рејтинг ранг листа</string>
   <string name="havePlayedMoreThanThirtyGamesInThatRating">одиграти барем 30 рангираних партија у одређеном рејтингу,</string>
-  <string name="havePlayedARatedGameAtLeastOneWeekAgo">одиграти рангирану игру у овом рејтингу унутар једне недеље,</string>
-  <string name="ratingDeviationLowerThanXinChessYinVariants">имати девијацију рејтинга мању од %1$s, у стандардном шаху, и мању од %2$s у варијантама,</string>
-  <string name="beInTopTen">бити у топ 10 у овом рејтингу.</string>
-  <string name="secondRequirementToStopOldPlayersTrustingLeaderboards">Друга неопходност постоји како би неактивни налози престали да попуњавају ранг листе.</string>
-  <string name="whyAreRatingHigher">Зашто су рејтинзи виши у поређењу са другим сајтовима и организацијама као што су ФИДЕ, УСЦФ и ИЦЦ?</string>
+  <string name="havePlayedARatedGameAtLeastOneWeekAgo">одиграти рангирану партију у току прошле недеље за овај рејтинг,</string>
+  <string name="ratingDeviationLowerThanXinChessYinVariants">имати рејтинг девијацију мању од %1$s, у стандардном шаху, и мању од %2$s у варијантама,</string>
+  <string name="beInTopTen">бити у првих 10 у овом рејтингу.</string>
+  <string name="secondRequirementToStopOldPlayersTrustingLeaderboards">2. захтев је такав како би играчи који више не користе своје налоге престали попуњавати ранг листе.</string>
+  <string name="whyAreRatingHigher">Зашто су рејтинзи виши у поређењу са другим сајтовима и организацијама као што су ФИДЕ, USCF и ICC?</string>
   <string name="whyAreRatingHigherExplanation">Најбоље је не гледати на рејтинга као апсолутне бројеве, нити их поредити са другим организацијама. Друге организације имају разне нивое играча, друге рејтинг системе (Ело, Глико, Глико-2, или модификовану верзију неких од ових). Ови фактори драстично утичу на апсолутне бројеве (рејтинг).
 
 Најбоље је гледати рејтинге као \"релативне\" бројеве (а не \"апсолутне\" бројеве): унутар једног скупа играча, њихове релативне разлике у рејтингу ће ти помоћи да одредиш ко ће победити/изгубити и колико често. Реченица \"Ја имам Х рејтинг\" не значи ништа ако немаш остале играче са којима можеш поредити тај рејтинг.</string>
