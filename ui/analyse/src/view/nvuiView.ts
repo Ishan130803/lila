@@ -1,10 +1,18 @@
-import { type VNode, type LooseVNodes, type VNodeChildren, hl, bind, noTrans, enter } from 'lib/view';
-import { defined } from 'lib';
-import { text as xhrText } from 'lib/xhr';
-import type AnalyseCtrl from '../ctrl';
-import { makeConfig as makeCgConfig } from '../ground';
-import type { AnalyseData } from '../interfaces';
-import type { Player } from 'lib/game';
+import {
+  type VNode,
+  type LooseVNodes,
+  type VNodeChildren,
+  bind,
+  hl,
+  noTrans,
+  enter,
+} from "lib/view";
+import { defined } from "lib";
+import { text as xhrText } from "lib/xhr";
+import type AnalyseCtrl from "../ctrl";
+import { makeConfig as makeCgConfig } from "../ground";
+import type { AnalyseData } from "../interfaces";
+import type { Player } from "lib/game";
 import {
   renderSan,
   renderPieces,
@@ -24,111 +32,163 @@ import {
   renderPockets,
   pocketsStr,
   leaveSquareHandler,
-} from 'lib/nvui/chess';
-import { liveText } from 'lib/nvui/notify';
-import { renderSetting } from 'lib/nvui/setting';
-import { commands, boardCommands, addBreaks } from 'lib/nvui/command';
-import explorerView from '../explorer/explorerView';
-import { ops, path as treePath } from 'lib/tree/tree';
-import { view as cevalView, renderEval } from 'lib/ceval';
-import { next, prev } from '../control';
-import { lichessRules } from 'chessops/compat';
-import { makeSan } from 'chessops/san';
-import { charToRole, opposite, parseUci } from 'chessops/util';
-import { parseFen } from 'chessops/fen';
-import { setupPosition } from 'chessops/variant';
-import { plyToTurn } from 'lib/game/chess';
-import { Chessground as makeChessground } from '@lichess-org/chessground';
-import { pubsub } from 'lib/pubsub';
-import { renderResult, viewContext, type RelayViewContext } from '../view/components';
-import { view as chapterNewFormView } from '../study/chapterNewForm';
-import { view as chapterEditFormView } from '../study/chapterEditForm';
-import renderClocks from '../view/clocks';
-import { renderChat } from 'lib/chat/renderChat';
-import { throttle } from 'lib/async';
-import { renderRetro } from '../retrospect/nvuiRetroView';
-import { playersView } from '../study/relay/relayPlayers';
-import { showInfo as tourOverview } from '../study/relay/relayTourView';
-import type { AnalyseNvuiContext } from '../analyse.nvui';
-import { scanDirectionsHandler } from 'lib/nvui/directionScan';
-import type { ClientEval, PvData } from 'lib/tree/types';
-import { COLORS } from 'chessops';
+  RegexParserKeyboardEventHandler,
+  AdvancedBlindModeCommandsHandler,
+} from "lib/nvui/chess";
+import {
+  // allCharRegex,
+  king_moves_regex,
+  knight_moves_regex,
+  bishop_moves_regex,
+  rook_moves_regex,
+  queen_moves_regex,
+  pawn_capture_and_moves_regex,
+  pawn_promotions_regex,
+  castling_moves_regex,
+  announce_last_move_regex,
+  announce_current_time_regex,
+  announce_current_square_regex,
+  ranks_regex,
+  files_regex,
+  announce_possible_captures_regex,
+} from "lib/nvui/regex";
+import { liveText } from "lib/nvui/notify";
+import { renderSetting } from "lib/nvui/setting";
+import { commands, boardCommands, addBreaks } from "lib/nvui/command";
+import explorerView from "../explorer/explorerView";
+import { ops, path as treePath } from "lib/tree/tree";
+import { view as cevalView, renderEval } from "lib/ceval";
+import { next, prev } from "../control";
+import { lichessRules } from "chessops/compat";
+import { makeSan } from "chessops/san";
+import { charToRole, opposite, parseUci } from "chessops/util";
+import { parseFen } from "chessops/fen";
+import { setupPosition } from "chessops/variant";
+import { plyToTurn } from "lib/game/chess";
+import { Chessground as makeChessground } from "@lichess-org/chessground";
+import { pubsub } from "lib/pubsub";
+import {
+  renderResult,
+  viewContext,
+  type RelayViewContext,
+} from "../view/components";
+import { view as chapterNewFormView } from "../study/chapterNewForm";
+import { view as chapterEditFormView } from "../study/chapterEditForm";
+import renderClocks from "../view/clocks";
+import { renderChat } from "lib/chat/renderChat";
+import { throttle } from "lib/async";
+import { renderRetro } from "../retrospect/nvuiRetroView";
+import { playersView } from "../study/relay/relayPlayers";
+import { showInfo as tourOverview } from "../study/relay/relayTourView";
+import type { AnalyseNvuiContext } from "../analyse.nvui";
+import type { ClientEval, PvData } from "lib/tree/types";
+import { scanDirectionsHandler } from "lib/nvui/directionScan";
+import { COLORS } from "chessops";
 
-const throttled = (sound: string) => throttle(100, () => site.sound.play(sound));
-const selectSound = throttled('select');
-const borderSound = throttled('outOfBound');
-const errorSound = throttled('error');
+const throttled = (sound: string) =>
+  throttle(100, () => site.sound.play(sound));
+const selectSound = throttled("select");
+const borderSound = throttled("outOfBound");
+const errorSound = throttled("error");
 
 export function initNvui(ctx: AnalyseNvuiContext): void {
   const { ctrl, notify } = ctx;
-  pubsub.on('analysis.server.progress', (data: AnalyseData) => {
-    if (data.analysis && !data.analysis.partial) notify.set('Server-side analysis complete');
+  pubsub.on("analysis.server.progress", (data: AnalyseData) => {
+    if (data.analysis && !data.analysis.partial)
+      notify.set("Server-side analysis complete");
   });
-  site.mousetrap.unbind('c');
-  site.mousetrap.bind('c', () => notify.set(renderEvalAndDepth(ctrl)));
+  site.mousetrap.unbind("c");
+  site.mousetrap.bind("c", () => notify.set(renderEvalAndDepth(ctrl)));
 }
 
 export function renderNvui(ctx: AnalyseNvuiContext): VNode {
-  const { ctrl, deps, notify, moveStyle, pieceStyle, prefixStyle, positionStyle, boardStyle } = ctx;
+  const {
+    ctrl,
+    deps,
+    notify,
+    moveStyle,
+    pieceStyle,
+    prefixStyle,
+    positionStyle,
+    boardStyle,
+  } = ctx;
   const d = ctrl.data,
     style = moveStyle.get(),
     clocks = renderClocks(ctrl, ctrl.path),
     pockets = ctrl.node.crazy?.pockets;
-  ctrl.chessground = makeChessground(document.createElement('div'), {
+  ctrl.chessground = makeChessground(document.createElement("div"), {
     ...makeCgConfig(ctrl),
     animation: { enabled: false },
     drawable: { enabled: false },
     coordinates: false,
   });
-  return hl('main.analyse', [
-    hl('div.nvui', [
+  return hl("main.analyse", [
+    hl("div.nvui", [
       studyDetails(ctrl),
-      hl('h2', i18n.nvui.gameInfo),
-      ...COLORS.map(color => hl('p', [`${i18n.site[color]}: `, renderPlayer(ctrl, playerByColor(d, color))])),
-      hl('p', `${i18n.site[d.game.rated ? 'rated' : 'casual']} ${d.game.perf || d.game.variant.name}`),
-      d.clock ? hl('p', `Clock: ${d.clock.initial / 60} + ${d.clock.increment}`) : null,
-      hl('h2', i18n.nvui.moveList),
-      hl('p.moves', { attrs: { role: 'log', 'aria-live': 'off' } }, renderCurrentLine(ctx)),
+      hl("h2", i18n.nvui.gameInfo),
+      ...COLORS.map((color) =>
+        hl("p", [
+          `${i18n.site[color]}: `,
+          renderPlayer(ctrl, playerByColor(d, color)),
+        ]),
+      ),
+      hl(
+        "p",
+        `${i18n.site[d.game.rated ? "rated" : "casual"]} ${d.game.perf || d.game.variant.name}`,
+      ),
+      d.clock
+        ? hl("p", `Clock: ${d.clock.initial / 60} + ${d.clock.increment}`)
+        : null,
+      hl("h2", i18n.nvui.moveList),
+      hl(
+        "p.moves",
+        { attrs: { role: "log", "aria-live": "off" } },
+        renderCurrentLine(ctx),
+      ),
       !ctrl.study?.practice && [
         hl(
-          'button',
+          "button",
           {
-            attrs: { 'aria-pressed': `${ctrl.explorer.enabled()}` },
-            hook: bind('click', _ => ctrl.explorer.toggle(), ctrl.redraw),
+            attrs: { "aria-pressed": `${ctrl.explorer.enabled()}` },
+            hook: bind("click", (_) => ctrl.explorer.toggle(), ctrl.redraw),
           },
           i18n.site.openingExplorerAndTablebase,
         ),
         explorerView(ctrl),
       ],
-      hl('h2', i18n.nvui.pieces),
+      hl("h2", i18n.nvui.pieces),
       renderPieces(ctrl.chessground.state.pieces, style),
-      pockets && hl('h2', i18n.nvui.pockets),
+      pockets && hl("h2", i18n.nvui.pockets),
       pockets && renderPockets(pockets),
       renderAriaResult(ctrl),
-      hl('h2', i18n.nvui.lastMove),
-      !ctrl.retro && liveText(renderCurrentNode(ctx), 'polite', 'p.position.lastMove'),
+      hl("h2", i18n.nvui.lastMove),
+      !ctrl.retro &&
+        liveText(renderCurrentNode(ctx), "polite", "p.position.lastMove"),
       clocks &&
-        hl('div.clocks', [
-          hl('h2', `${i18n.site.clock}`),
-          hl('div.clocks', [hl('div.topc', clocks[0]), hl('div.botc', clocks[1])]),
+        hl("div.clocks", [
+          hl("h2", `${i18n.site.clock}`),
+          hl("div.clocks", [
+            hl("div.topc", clocks[0]),
+            hl("div.botc", clocks[1]),
+          ]),
         ]),
-      hl('h2', i18n.nvui.inputForm),
+      hl("h2", i18n.nvui.inputForm),
       hl(
-        'form#move-form',
+        "form#move-form",
         {
           hook: {
             insert(vnode) {
               const $form = $(vnode.elm as HTMLFormElement),
-                $input = $form.find('.move').val('');
-              $form.on('submit', onSubmit(ctx, $input));
+                $input = $form.find(".move").val("");
+              $form.on("submit", onSubmit(ctx, $input));
             },
           },
         },
         [
-          hl('label', [
+          hl("label", [
             i18n.nvui.inputForm,
-            hl('input.move.mousetrap', {
-              attrs: { name: 'move', type: 'text', autocomplete: 'off' },
+            hl("input.move.mousetrap", {
+              attrs: { name: "move", type: "text", autocomplete: "off" },
             }),
           ]),
         ],
@@ -136,79 +196,93 @@ export function renderNvui(ctx: AnalyseNvuiContext): VNode {
       notify.render(),
       renderRetro(ctx),
       !ctrl.retro && [
-        hl('h2', i18n.site.computerAnalysis),
+        hl("h2", i18n.site.computerAnalysis),
         cevalView.renderCeval(ctrl), // beware unsolicted redraws hosing the screen reader
         cevalView.renderPvs(ctrl),
         renderAcpl(ctx) || requestAnalysisBtn(ctx),
       ],
-      hl('h2', i18n.site.board),
+      hl("h2", i18n.site.board),
       hl(
-        'div.board',
-        { hook: { insert: el => boardEventsHook(ctx, el.elm as HTMLElement) } },
+        "div.board",
+        {
+          hook: { insert: (el) => boardEventsHook(ctx, el.elm as HTMLElement) },
+        },
         renderBoard(
           ctrl.chessground.state.pieces,
-          ctrl.data.game.variant.key === 'racingKings' ? 'white' : ctrl.bottomColor(),
+          ctrl.data.game.variant.key === "racingKings"
+            ? "white"
+            : ctrl.bottomColor(),
           pieceStyle.get(),
           prefixStyle.get(),
           positionStyle.get(),
           boardStyle.get(),
         ),
       ),
-      hl('div.boardstatus', { attrs: { 'aria-live': 'polite', 'aria-atomic': 'true' } }, ''),
-      hl('div.content', {
+      hl(
+        "div.boardstatus",
+        { attrs: { "aria-live": "polite", "aria-atomic": "true" } },
+        "",
+      ),
+      hl("div.content", {
         hook: {
-          insert: vnode => {
+          insert: (vnode) => {
             const root = $(vnode.elm as HTMLElement);
-            root.append($('.blind-content').removeClass('none'));
-            root.find('.copy-pgn').on('click', function (this: HTMLElement) {
+            root.append($(".blind-content").removeClass("none"));
+            root.find(".copy-pgn").on("click", function (this: HTMLElement) {
               navigator.clipboard.writeText(this.dataset.pgn!).then(() => {
-                notify.set(i18n.nvui.copiedToClipboard('PGN'));
+                notify.set(i18n.nvui.copiedToClipboard("PGN"));
               });
             });
-            root.find('.copy-fen').on('click', function (this: HTMLElement) {
-              const inputFen = document.querySelector('.analyse__underboard__fen input') as HTMLInputElement;
+            root.find(".copy-fen").on("click", function (this: HTMLElement) {
+              const inputFen = document.querySelector(
+                ".analyse__underboard__fen input",
+              ) as HTMLInputElement;
               const fen = inputFen.value;
               navigator.clipboard.writeText(fen).then(() => {
-                notify.set(i18n.nvui.copiedToClipboard('FEN'));
+                notify.set(i18n.nvui.copiedToClipboard("FEN"));
               });
             });
           },
         },
       }),
-      hl('h2', i18n.site.advancedSettings),
-      hl('label', ['Move notation', renderSetting(moveStyle, ctrl.redraw)]),
-      hl('h3', 'Board settings'),
-      hl('label', ['Piece style', renderSetting(pieceStyle, ctrl.redraw)]),
-      hl('label', ['Piece prefix style', renderSetting(prefixStyle, ctrl.redraw)]),
-      hl('label', ['Show position', renderSetting(positionStyle, ctrl.redraw)]),
-      hl('label', ['Board layout', renderSetting(boardStyle, ctrl.redraw)]),
-      hl('h2', i18n.site.keyboardShortcuts),
+      hl("h2", i18n.site.advancedSettings),
+      hl("label", ["Move notation", renderSetting(moveStyle, ctrl.redraw)]),
+      hl("h3", "Board settings"),
+      hl("label", ["Piece style", renderSetting(pieceStyle, ctrl.redraw)]),
+      hl("label", [
+        "Piece prefix style",
+        renderSetting(prefixStyle, ctrl.redraw),
+      ]),
+      hl("label", ["Show position", renderSetting(positionStyle, ctrl.redraw)]),
+      hl("label", ["Board layout", renderSetting(boardStyle, ctrl.redraw)]),
+      hl("h2", i18n.site.keyboardShortcuts),
       hl(
-        'p',
+        "p",
         [
-          'Use arrow keys to navigate in the game.',
+          "Use arrow keys to navigate in the game.",
           `l: ${i18n.site.toggleLocalAnalysis}`,
           `z: ${i18n.site.toggleAllAnalysis}`,
           `space: ${i18n.site.playComputerMove}`,
-          'c: announce computer evaluation',
+          "c: announce computer evaluation",
           `x: ${i18n.site.showThreat}`,
         ].reduce(addBreaks, []),
       ),
       boardCommands(),
-      hl('h2', i18n.nvui.inputFormCommandList),
+      hl("h2", i18n.nvui.inputFormCommandList),
       hl(
-        'p',
+        "p",
         [
-          'Type these commands in the command input.',
+          "Type these commands in the command input.",
           ...inputCommands
-            .filter(c => !c.invalid?.(ctrl))
-            .flatMap(command => [noTrans(`${command.cmd}: `), command.help]),
+            .filter((c) => !c.invalid?.(ctrl))
+            .flatMap((command) => [noTrans(`${command.cmd}: `), command.help]),
         ].reduce<VNodeChildren[]>(
-          (acc, curr, i) => (i % 2 !== 0 ? addBreaks(acc, curr) : acc.concat(curr)),
+          (acc, curr, i) =>
+            i % 2 !== 0 ? addBreaks(acc, curr) : acc.concat(curr),
           [],
         ),
       ),
-      hl('h2', 'Chat'),
+      hl("h2", "Chat"),
       ctrl.chatCtrl && renderChat(ctrl.chatCtrl),
       deps && ctrl.study?.relay && tourDetails(ctx),
     ]),
@@ -222,12 +296,12 @@ export function clickHook(main?: (el: HTMLElement) => void, post?: () => void) {
     hook: {
       insert: (vnode: VNode) => {
         const el = vnode.elm as HTMLElement;
-        el.addEventListener('click', () => {
+        el.addEventListener("click", () => {
           main?.(el);
           post?.();
         });
         el.addEventListener(
-          'keydown',
+          "keydown",
           enter(() => {
             main?.(el);
             post?.();
@@ -242,62 +316,500 @@ function boardEventsHook(
   { ctrl, pieceStyle, prefixStyle, moveStyle, notify }: AnalyseNvuiContext,
   el: HTMLElement,
 ): void {
-  const $board = $(el);
-  const $buttons = $board.find('button');
-  const steps = () => ctrl.tree.getNodeList(ctrl.path);
-  const fenSteps = () => steps().map(step => step.fen);
-  const opponentColor = () => (ctrl.node.ply % 2 === 0 ? 'black' : 'white');
-  $buttons.on('blur', leaveSquareHandler($buttons));
-  $buttons.on('click', selectionHandler(opponentColor));
-  $buttons.on('keydown', (e: KeyboardEvent) => {
-    if (e.shiftKey && e.key.match(/^[ad]$/i)) jumpMoveOrLine(ctrl)(e);
-    else if (e.key.match(/^x$/i))
-      scanDirectionsHandler(ctrl.bottomColor(), ctrl.chessground.state.pieces, moveStyle.get())(e);
-    else if (['o', 'l', 't'].includes(e.key)) boardCommandsHandler()(e);
-    else if (e.key.startsWith('Arrow')) arrowKeyHandler(ctrl.bottomColor(), borderSound)(e);
-    else if (e.key === 'c') lastCapturedCommandHandler(fenSteps, pieceStyle.get(), prefixStyle.get())();
-    else if (e.key === 'i') {
-      e.preventDefault();
-      document.querySelector<HTMLElement>('input.move')?.focus();
-    } else if (e.key === 'f') {
-      if (ctrl.data.game.variant.key !== 'racingKings') {
-        notify.set('Flipping the board');
-        setTimeout(() => ctrl.flip(), 1000);
-      }
-    } else if (e.code.match(/^Digit([1-8])$/)) positionJumpHandler()(e);
-    else if (e.key.match(/^[kqrbnp]$/i)) pieceJumpingHandler(selectSound, errorSound)(e);
-    else if (e.key.toLowerCase() === 'm')
-      possibleMovesHandler(ctrl.turnColor(), ctrl.chessground, ctrl.data.game.variant.key, ctrl.nodeList)(e);
-    else if (e.key.toLowerCase() === 'v') notify.set(renderEvalAndDepth(ctrl));
-    else if (e.key === 'G') ctrl.playBestMove();
-    else if (e.key === 'g') notify.set(renderBestMove({ ctrl, moveStyle } as AnalyseNvuiContext));
-  });
+  if (true) {
+    // TODO: The advanced Blind Mode commands
+    const $board = $(el);
+    const $buttons = $board.find("button");
+    let currentActiveSquare: HTMLButtonElement | null = null;
+
+    // const steps = () => ctrl.tree.getNodeList(ctrl.path);
+    // const fenSteps = () => steps().map((step) => step.fen);
+    const opponentColor = () => (ctrl.node.ply % 2 === 0 ? "black" : "white");
+    $buttons.on("blur", leaveSquareHandler($buttons));
+    $buttons.on("click", selectionHandler(opponentColor));
+    $buttons.on("keydown", (e: KeyboardEvent) => {
+      currentActiveSquare = e.target as HTMLButtonElement;
+      notify.set(("Current pressed key is " + e.key) as string);
+    });
+
+    let mode: "view" | "move" = "view";
+
+    const boardDOMElement = $board.get(0) as HTMLElement;
+
+    const viewModeHandler = new RegexParserKeyboardEventHandler(5000);
+    const moveModeHandler = new RegexParserKeyboardEventHandler(5000);
+
+    viewModeHandler
+      .registerInputPattern({
+        name: "viewModeEnter",
+        regex: `v`,
+        action: () => {
+          notify.set("Entering View Mode");
+          mode = "view";
+        },
+      })
+      .registerInputPattern({
+        name: "jumpToRank",
+        regex: ranks_regex,
+        action: (buffer) => {
+          const rank = buffer.slice(-1);
+          if (!currentActiveSquare) {
+            return;
+          }
+          AdvancedBlindModeCommandsHandler.execute("jumpToRank")!(currentActiveSquare, rank)
+        }
+      })
+      .registerInputPattern({
+        name: "jumpToFile",
+        regex: files_regex,
+        action: (buffer) => {
+          const file = buffer.slice(-1);
+          if (!currentActiveSquare) {
+            return;
+          }
+          AdvancedBlindModeCommandsHandler.execute("jumpToFile")!(currentActiveSquare, file)
+        }
+      })
+      .registerInputPattern({
+        name: "moveModeEnter",
+        regex: `m`,
+        action: () => {
+          notify.set("Entering Move mode from view Mode");
+          viewModeHandler.unbind();
+          moveModeHandler.bind(boardDOMElement);
+          mode = "move";
+        },
+      })
+      .registerInputPattern({
+        name: "tellMode",
+        regex: `9`,
+        action: () => {
+          notify.set("Current Mode is " + mode);
+        },
+      })
+      .registerInputPattern({
+        name: "moveAround",
+        regex: "(j|k|l|i)",
+        action: (buffer) => {
+          if (!currentActiveSquare) {
+            return;
+          }
+          const isWhite = ctrl.bottomColor() === "white";
+          let action: "moveLeft" | "moveUp" | "moveDown" | "moveRight";
+          switch (buffer.slice(-1)) {
+            case "j":
+              action = "moveLeft";
+              break;
+            case "i":
+              action = "moveUp";
+              break;
+            case "k":
+              action = "moveDown";
+              break;
+            case "l":
+              action = "moveRight";
+              break;
+          }
+          AdvancedBlindModeCommandsHandler.execute(action!)?.(
+            isWhite,
+            currentActiveSquare,
+            borderSound,
+          );
+        },
+      })
+      .registerInputPattern({
+        name: "prevOrNextLine",
+        regex: "(J|L)",
+        action: (buffer) => {
+          if (buffer.slice(-1) === "J") {
+            doAndRedraw(ctrl, prev);
+          } else {
+            doAndRedraw(ctrl, next);
+          }
+        },
+      })
+      .registerInputPattern({
+        name: "jumpPrevOrNextLine",
+        regex: "(K|I)",
+        action: (buffer) => {
+          if (buffer.slice(-1) === "K") {
+            doAndRedraw(ctrl, jumpNextLine);
+          } else {
+            doAndRedraw(ctrl, jumpPrevLine);
+          }
+        },
+      })
+      .registerInputPattern({
+        name: "lastMoveAnnouncement",
+        regex: announce_last_move_regex,
+        action: () => {
+          AdvancedBlindModeCommandsHandler.execute("announceLastMove")!();
+        },
+      })
+      .registerInputPattern({
+        name: "announceCurrentSquare",
+        regex: announce_current_square_regex,
+        action: () => {
+          if (!currentActiveSquare) {
+            return;
+          }
+          AdvancedBlindModeCommandsHandler.execute("announceSquare")!(
+            currentActiveSquare,
+          );
+        },
+      })
+      .registerInputPattern({
+        name: "announceCurrentTime",
+        regex: announce_current_time_regex,
+        action: () => {
+          AdvancedBlindModeCommandsHandler.execute("announceTime")!();
+        },
+      })
+
+    moveModeHandler
+      .registerInputPattern({
+        name: "showPossibleMoves",
+        regex: announce_possible_captures_regex,
+        action: () => {
+          if (!currentActiveSquare) {
+            return;
+          }
+          AdvancedBlindModeCommandsHandler.execute("tellPossibleMoves")!(
+            ctrl.turnColor(),
+            ctrl.chessground,
+            ctrl.data.game.variant.key,
+            ctrl.nodeList,
+            currentActiveSquare
+          );
+        }
+      })
+      .registerInputPattern({
+        name: "viewModeEnter",
+        regex: `v`,
+        action: () => {
+          notify.set("Entering View Mode");
+          moveModeHandler.unbind();
+          viewModeHandler.bind(boardDOMElement);
+          mode = "view";
+        },
+      })
+      .registerInputPattern({
+        name: "flipBoard",
+        regex: "zf",
+        action: () => {
+          notify.set("Flipping the boards");
+          setTimeout(() => ctrl.flip(), 1000);
+        },
+      })
+      .registerInputPattern({
+        name: "moveModeEnter",
+        regex: `m`,
+        action: () => {
+          notify.set("Entering Move Mode");
+          mode = "move";
+        },
+      })
+      .registerInputPattern({
+        name: "tellMode",
+        regex: `9`,
+        action: () => {
+          notify.set("Current Mode is " + mode);
+        },
+      })
+      .registerInputPattern({
+        name: "pawnMovesAndCaptures",
+        regex: pawn_capture_and_moves_regex,
+        action: (input) => {
+          console.log(input, "Triggered");
+          const move = inputToMove(input, ctrl.node.fen, ctrl.chessground);
+          const isDrop = (u: undefined | string | DropMove) =>
+            !!(u && typeof u !== "string");
+          const isInvalidDrop = (d: DropMove) =>
+            !ctrl.crazyValid(d.role, d.key) ||
+            ctrl.chessground.state.pieces.has(d.key);
+          const isInvalidCrazy = isDrop(move) && isInvalidDrop(move);
+          if (!move || isInvalidCrazy) notify.set(`Invalid move: ${input}`);
+          else sendMove(move, ctrl);
+        },
+      })
+      .registerInputPattern({
+        name: "knight_moves",
+        regex: knight_moves_regex,
+        action: (input) => {
+          console.log(input, "Triggered");
+          input = castlingFlavours(input.trim());
+          const move = inputToMove(input, ctrl.node.fen, ctrl.chessground);
+          const isDrop = (u: undefined | string | DropMove) =>
+            !!(u && typeof u !== "string");
+          const isInvalidDrop = (d: DropMove) =>
+            !ctrl.crazyValid(d.role, d.key) ||
+            ctrl.chessground.state.pieces.has(d.key);
+          const isInvalidCrazy = isDrop(move) && isInvalidDrop(move);
+          if (!move || isInvalidCrazy) notify.set(`Invalid move: ${input}`);
+          else sendMove(move, ctrl);
+        },
+      })
+      .registerInputPattern({
+        name: "queen_moves",
+        regex: queen_moves_regex,
+        action: (input) => {
+          console.log(input, "Triggered");
+          input = castlingFlavours(input.trim());
+          const move = inputToMove(input, ctrl.node.fen, ctrl.chessground);
+          const isDrop = (u: undefined | string | DropMove) =>
+            !!(u && typeof u !== "string");
+          const isInvalidDrop = (d: DropMove) =>
+            !ctrl.crazyValid(d.role, d.key) ||
+            ctrl.chessground.state.pieces.has(d.key);
+          const isInvalidCrazy = isDrop(move) && isInvalidDrop(move);
+          if (!move || isInvalidCrazy) notify.set(`Invalid move: ${input}`);
+          else sendMove(move, ctrl);
+        },
+      })
+      .registerInputPattern({
+        name: "rook_moves",
+        regex: rook_moves_regex,
+        action: (input) => {
+          console.log(input, "Triggered");
+          input = castlingFlavours(input.trim());
+          const move = inputToMove(input, ctrl.node.fen, ctrl.chessground);
+          const isDrop = (u: undefined | string | DropMove) =>
+            !!(u && typeof u !== "string");
+          const isInvalidDrop = (d: DropMove) =>
+            !ctrl.crazyValid(d.role, d.key) ||
+            ctrl.chessground.state.pieces.has(d.key);
+          const isInvalidCrazy = isDrop(move) && isInvalidDrop(move);
+          if (!move || isInvalidCrazy) notify.set(`Invalid move: ${input}`);
+          else sendMove(move, ctrl);
+        },
+      })
+      .registerInputPattern({
+        name: "bishop_moves",
+        regex: bishop_moves_regex,
+        action: (input) => {
+          console.log(input, "Triggered");
+          input = "B" + input.slice(1);
+
+          const move = inputToMove(input, ctrl.node.fen, ctrl.chessground);
+          const isDrop = (u: undefined | string | DropMove) =>
+            !!(u && typeof u !== "string");
+          const isInvalidDrop = (d: DropMove) =>
+            !ctrl.crazyValid(d.role, d.key) ||
+            ctrl.chessground.state.pieces.has(d.key);
+          const isInvalidCrazy = isDrop(move) && isInvalidDrop(move);
+          if (!move || isInvalidCrazy) notify.set(`Invalid move: ${input}`);
+          else sendMove(move, ctrl);
+        },
+      })
+      .registerInputPattern({
+        name: "king_moves",
+        regex: king_moves_regex,
+        action: (input) => {
+          console.log(input, "Triggered");
+          input = "k" + input.slice(1);
+
+          const move = inputToMove(input, ctrl.node.fen, ctrl.chessground);
+          const isDrop = (u: undefined | string | DropMove) =>
+            !!(u && typeof u !== "string");
+          const isInvalidDrop = (d: DropMove) =>
+            !ctrl.crazyValid(d.role, d.key) ||
+            ctrl.chessground.state.pieces.has(d.key);
+          const isInvalidCrazy = isDrop(move) && isInvalidDrop(move);
+          if (!move || isInvalidCrazy) notify.set(`Invalid move: ${input}`);
+          else sendMove(move, ctrl);
+        },
+      })
+      .registerInputPattern({
+        name: "castlings",
+        regex: castling_moves_regex,
+        action: (input) => {
+          if (input == "o") input = "O-O";
+          else if (input == "O") input = "O-O-O";
+          console.log(input, "Triggered");
+          const move = inputToMove(input, ctrl.node.fen, ctrl.chessground);
+          const isDrop = (u: undefined | string | DropMove) =>
+            !!(u && typeof u !== "string");
+          const isInvalidDrop = (d: DropMove) =>
+            !ctrl.crazyValid(d.role, d.key) ||
+            ctrl.chessground.state.pieces.has(d.key);
+          const isInvalidCrazy = isDrop(move) && isInvalidDrop(move);
+          if (!move || isInvalidCrazy) notify.set(`Invalid move: ${input}`);
+          else sendMove(move, ctrl);
+        },
+      })
+
+      .registerInputPattern({
+        name: "pawn_promotions",
+        regex: pawn_promotions_regex,
+        action: (input) => {
+          console.log(input, "Triggered");
+          let piece = input.slice(-1);
+          input = input.slice(0, -1) + "=";
+          switch (input[-1]) {
+            case "b":
+            case "B":
+              piece = "B";
+              break;
+          }
+          input = input + piece;
+
+          const move = inputToMove(input, ctrl.node.fen, ctrl.chessground);
+          const isDrop = (u: undefined | string | DropMove) =>
+            !!(u && typeof u !== "string");
+          const isInvalidDrop = (d: DropMove) =>
+            !ctrl.crazyValid(d.role, d.key) ||
+            ctrl.chessground.state.pieces.has(d.key);
+          const isInvalidCrazy = isDrop(move) && isInvalidDrop(move);
+          if (!move || isInvalidCrazy) notify.set(`Invalid move: ${input}`);
+          else sendMove(move, ctrl);
+        },
+      })
+      .registerInputPattern({
+        name: "moveAround",
+        regex: "(j|k|l|i)",
+        action: (buffer) => {
+          if (!currentActiveSquare) {
+            return;
+          }
+          const isWhite = ctrl.bottomColor() === "white";
+          let action: "moveLeft" | "moveUp" | "moveDown" | "moveRight";
+          switch (buffer.slice(-1)) {
+            case "j":
+              action = "moveLeft";
+              break;
+            case "i":
+              action = "moveUp";
+              break;
+            case "k":
+              action = "moveDown";
+              break;
+            case "l":
+              action = "moveRight";
+              break;
+          }
+          AdvancedBlindModeCommandsHandler.execute(action!)?.(
+            isWhite,
+            currentActiveSquare,
+            borderSound,
+          );
+        },
+      })
+      .registerInputPattern({
+        name: "lastMoveAnnouncement",
+        regex: announce_last_move_regex,
+        action: () => {
+          AdvancedBlindModeCommandsHandler.execute("announceLastMove")!();
+        },
+      })
+      .registerInputPattern({
+        name: "announceCurrentSquare",
+        regex: announce_current_square_regex,
+        action: () => {
+          if (!currentActiveSquare) {
+            return;
+          }
+          AdvancedBlindModeCommandsHandler.execute("announceSquare")!(
+            currentActiveSquare,
+          );
+        },
+      })
+      .registerInputPattern({
+        name: "announceCurrentTime",
+        regex: announce_current_time_regex,
+        action: () => {
+          AdvancedBlindModeCommandsHandler.execute("announceTime")!();
+        },
+      });
+
+    viewModeHandler.compile();
+    moveModeHandler.compile();
+
+    moveModeHandler.bind(boardDOMElement);
+    mode = "move";
+  } else {
+    const $board = $(el);
+    const $buttons = $board.find("button");
+    const steps = () => ctrl.tree.getNodeList(ctrl.path);
+    const fenSteps = () => steps().map((step) => step.fen);
+    const opponentColor = () => (ctrl.node.ply % 2 === 0 ? "black" : "white");
+    $buttons.on("blur", leaveSquareHandler($buttons));
+    $buttons.on("click", selectionHandler(opponentColor));
+    $buttons.on("keydown", (e: KeyboardEvent) => {
+      if (e.shiftKey && e.key.match(/^[ad]$/i)) jumpMoveOrLine(ctrl)(e);
+      else if (e.key.match(/^x$/i))
+        scanDirectionsHandler(
+          ctrl.bottomColor(),
+          ctrl.chessground.state.pieces,
+          moveStyle.get(),
+        )(e);
+      else if (["o", "l", "t"].includes(e.key)) boardCommandsHandler()(e);
+      else if (e.key.startsWith("Arrow"))
+        arrowKeyHandler(ctrl.bottomColor(), borderSound)(e);
+      else if (e.key === "c")
+        lastCapturedCommandHandler(
+          fenSteps,
+          pieceStyle.get(),
+          prefixStyle.get(),
+        )();
+      else if (e.key === "i") {
+        e.preventDefault();
+        document.querySelector<HTMLElement>("input.move")?.focus();
+      } else if (e.key === "f") {
+        if (ctrl.data.game.variant.key !== "racingKings") {
+          notify.set("Flipping the board");
+          setTimeout(() => ctrl.flip(), 1000);
+        }
+      } else if (e.code.match(/^Digit([1-8])$/)) positionJumpHandler()(e);
+      else if (e.key.match(/^[kqrbnp]$/i))
+        pieceJumpingHandler(selectSound, errorSound)(e);
+      else if (e.key.toLowerCase() === "m")
+        possibleMovesHandler(
+          ctrl.turnColor(),
+          ctrl.chessground,
+          ctrl.data.game.variant.key,
+          ctrl.nodeList,
+        )(e);
+      else if (e.key.toLowerCase() === "v")
+        notify.set(renderEvalAndDepth(ctrl));
+      else if (e.key === "G") ctrl.playBestMove();
+      else if (e.key === "g")
+        notify.set(renderBestMove({ ctrl, moveStyle } as AnalyseNvuiContext));
+    });
+  }
 }
 
 function renderEvalAndDepth(ctrl: AnalyseCtrl): string {
-  if (ctrl.threatMode()) return `${evalInfo(ctrl.node.threat)} ${depthInfo(ctrl.node.threat, false)}`;
+  if (ctrl.threatMode())
+    return `${evalInfo(ctrl.node.threat)} ${depthInfo(ctrl.node.threat, false)}`;
   const evs = { client: ctrl.getNode().ceval, server: ctrl.getNode().eval },
     bestEv = cevalView.getBestEval(ctrl);
   const evalStr = evalInfo(bestEv);
-  return !evalStr ? noEvalStr(ctrl) : `${evalStr} ${depthInfo(evs.client, !!evs.client?.cloud)}`;
+  return !evalStr
+    ? noEvalStr(ctrl)
+    : `${evalStr} ${depthInfo(evs.client, !!evs.client?.cloud)}`;
 }
 
 const evalInfo = (bestEv: EvalScore | undefined): string =>
   defined(bestEv?.cp)
-    ? renderEval(bestEv.cp).replace('-', '−')
+    ? renderEval(bestEv.cp).replace("-", "−")
     : defined(bestEv?.mate)
-      ? `mate in ${Math.abs(bestEv.mate)} for ${bestEv.mate > 0 ? 'white' : 'black'}`
-      : '';
+      ? `mate in ${Math.abs(bestEv.mate)} for ${bestEv.mate > 0 ? "white" : "black"}`
+      : "";
 
-const depthInfo = (clientEv: ClientEval | undefined, isCloud: boolean): string =>
-  clientEv ? `${i18n.site.depthX(clientEv.depth || 0)} ${isCloud ? 'Cloud' : ''}` : '';
+const depthInfo = (
+  clientEv: ClientEval | undefined,
+  isCloud: boolean,
+): string =>
+  clientEv
+    ? `${i18n.site.depthX(clientEv.depth || 0)} ${isCloud ? "Cloud" : ""}`
+    : "";
 
 const noEvalStr = (ctrl: AnalyseCtrl) =>
   !ctrl.isCevalAllowed()
-    ? 'local evaluation not allowed'
+    ? "local evaluation not allowed"
     : !ctrl.cevalEnabled()
-      ? 'local evaluation not enabled'
-      : '';
+      ? "local evaluation not enabled"
+      : "";
 
 function renderBestMove({ ctrl, moveStyle }: AnalyseNvuiContext): string {
   const noEvalMsg = noEvalStr(ctrl);
@@ -308,7 +820,7 @@ function renderBestMove({ ctrl, moveStyle }: AnalyseNvuiContext): string {
   if (ctrl.threatMode() && node.threat) {
     pvs = node.threat.pvs;
     setup.turn = opposite(setup.turn);
-    if (setup.turn === 'white') setup.fullmoves += 1;
+    if (setup.turn === "white") setup.fullmoves += 1;
   } else if (node.ceval) pvs = node.ceval.pvs;
   const pos = setupPosition(lichessRules(ctrl.ceval.opts.variant.key), setup);
   if (pos.isOk && pvs.length > 0 && pvs[0].moves.length > 0) {
@@ -316,23 +828,47 @@ function renderBestMove({ ctrl, moveStyle }: AnalyseNvuiContext): string {
     const san = makeSan(pos.unwrap(), parseUci(uci)!);
     return renderSan(san, uci, moveStyle.get());
   }
-  return '';
+  return "";
 }
 
 function renderAriaResult(ctrl: AnalyseCtrl): VNode[] {
   const result = renderResult(ctrl);
   const res = result.length ? result : i18n.site.none;
   return [
-    hl('h2', i18n.nvui.gameStatus),
-    hl('div', { attrs: { role: 'status', 'aria-live': 'assertive', 'aria-atomic': 'true' } }, res),
+    hl("h2", i18n.nvui.gameStatus),
+    hl(
+      "div",
+      {
+        attrs: {
+          role: "status",
+          "aria-live": "assertive",
+          "aria-atomic": "true",
+        },
+      },
+      res,
+    ),
   ];
 }
 
 function renderCurrentLine({ ctrl, moveStyle }: AnalyseNvuiContext) {
-  if (ctrl.path.length === 0) return renderMainline(ctrl.mainline, ctrl.path, moveStyle.get(), !ctrl.retro);
+  if (ctrl.path.length === 0)
+    return renderMainline(
+      ctrl.mainline,
+      ctrl.path,
+      moveStyle.get(),
+      !ctrl.retro,
+    );
   else {
-    const futureNodes = ctrl.node.children.length > 0 ? ops.mainlineNodeList(ctrl.node.children[0]) : [];
-    return renderMainline(ctrl.nodeList.concat(futureNodes), ctrl.path, moveStyle.get(), !ctrl.retro);
+    const futureNodes =
+      ctrl.node.children.length > 0
+        ? ops.mainlineNodeList(ctrl.node.children[0])
+        : [];
+    return renderMainline(
+      ctrl.nodeList.concat(futureNodes),
+      ctrl.path,
+      moveStyle.get(),
+      !ctrl.retro,
+    );
   }
 }
 
@@ -346,19 +882,31 @@ function onSubmit(ctx: AnalyseNvuiContext, $input: Cash) {
     if (command && !command.invalid?.(ctrl)) command.cb(ctx, input);
     else {
       const move = inputToMove(input, ctrl.node.fen, ctrl.chessground);
-      const isDrop = (u: undefined | string | DropMove) => !!(u && typeof u !== 'string');
+      const isDrop = (u: undefined | string | DropMove) =>
+        !!(u && typeof u !== "string");
       const isInvalidDrop = (d: DropMove) =>
-        !ctrl.crazyValid(d.role, d.key) || ctrl.chessground.state.pieces.has(d.key);
+        !ctrl.crazyValid(d.role, d.key) ||
+        ctrl.chessground.state.pieces.has(d.key);
       const isInvalidCrazy = isDrop(move) && isInvalidDrop(move);
 
       if (!move || isInvalidCrazy) notify.set(`Invalid move: ${input}`);
       else sendMove(move, ctrl);
     }
-    $input.val('');
+    $input.val("");
   };
 }
 
-type Command = 'b' | 'p' | 's' | 'eval' | 'best' | 'prev' | 'next' | 'prev line' | 'next line' | 'pocket';
+type Command =
+  | "b"
+  | "p"
+  | "s"
+  | "eval"
+  | "best"
+  | "prev"
+  | "next"
+  | "prev line"
+  | "next line"
+  | "pocket";
 type InputCommand = {
   cmd: Command;
   help: VNode | string;
@@ -368,122 +916,157 @@ type InputCommand = {
 
 const inputCommands: InputCommand[] = [
   {
-    cmd: 'b',
+    cmd: "b",
     help: commands().board.help,
     cb: ({ ctrl, notify, moveStyle }, input) =>
-      notify.set(commands().board.apply(input, ctrl.chessground.state.pieces, moveStyle.get()) || ''),
+      notify.set(
+        commands().board.apply(
+          input,
+          ctrl.chessground.state.pieces,
+          moveStyle.get(),
+        ) || "",
+      ),
   },
   {
-    cmd: 'p',
+    cmd: "p",
     help: commands().piece.help,
     cb: ({ ctrl, notify, moveStyle }, input) =>
       notify.set(
-        commands().piece.apply(input, ctrl.chessground.state.pieces, moveStyle.get()) ||
-          `Bad input: ${input}. Exptected format: ${commands().piece.help}`,
+        commands().piece.apply(
+          input,
+          ctrl.chessground.state.pieces,
+          moveStyle.get(),
+        ) || `Bad input: ${input}. Exptected format: ${commands().piece.help}`,
       ),
   },
   {
-    cmd: 's',
+    cmd: "s",
     help: commands().scan.help,
     cb: ({ ctrl, notify, moveStyle }, input) =>
       notify.set(
-        commands().scan.apply(input, ctrl.chessground.state.pieces, moveStyle.get()) ||
-          `Bad input: ${input}. Exptected format: ${commands().scan.help}`,
+        commands().scan.apply(
+          input,
+          ctrl.chessground.state.pieces,
+          moveStyle.get(),
+        ) || `Bad input: ${input}. Exptected format: ${commands().scan.help}`,
       ),
   },
   {
-    cmd: 'eval',
+    cmd: "eval",
     help: noTrans("announce last move's computer evaluation"),
     cb: ({ ctrl, notify }) => notify.set(renderEvalAndDepth(ctrl)),
   },
   {
-    cmd: 'best',
-    help: noTrans('announce the top engine move'),
-    cb: ctx => ctx.notify.set(renderBestMove(ctx)),
+    cmd: "best",
+    help: noTrans("announce the top engine move"),
+    cb: (ctx) => ctx.notify.set(renderBestMove(ctx)),
   },
   {
-    cmd: 'prev',
-    help: noTrans('return to the previous move'),
+    cmd: "prev",
+    help: noTrans("return to the previous move"),
     cb: ({ ctrl }) => doAndRedraw(ctrl, prev),
   },
-  { cmd: 'next', help: noTrans('go to the next move'), cb: ({ ctrl }) => doAndRedraw(ctrl, next) },
   {
-    cmd: 'prev line',
-    help: noTrans('switch to the previous variation'),
+    cmd: "next",
+    help: noTrans("go to the next move"),
+    cb: ({ ctrl }) => doAndRedraw(ctrl, next),
+  },
+  {
+    cmd: "prev line",
+    help: noTrans("switch to the previous variation"),
     cb: ({ ctrl }) => doAndRedraw(ctrl, jumpPrevLine),
   },
   {
-    cmd: 'next line',
-    help: noTrans('switch to the next variation'),
+    cmd: "next line",
+    help: noTrans("switch to the next variation"),
     cb: ({ ctrl }) => doAndRedraw(ctrl, jumpNextLine),
   },
   {
-    cmd: 'pocket',
-    help: noTrans('Read out pockets for white or black. Example: "pocket black"'),
+    cmd: "pocket",
+    help: noTrans(
+      'Read out pockets for white or black. Example: "pocket black"',
+    ),
     cb: ({ ctrl, notify }, input) => {
       const pockets = ctrl.node.crazy?.pockets;
-      const color = input.split(' ')?.[1]?.trim();
+      const color = input.split(" ")?.[1]?.trim();
       return notify.set(
         pockets
           ? color
-            ? pocketsStr(color === 'white' ? pockets[0] : pockets[1]) || i18n.site.none
-            : 'Expected format: pocket [white|black]'
-          : 'Command only available in crazyhouse',
+            ? pocketsStr(color === "white" ? pockets[0] : pockets[1]) ||
+              i18n.site.none
+            : "Expected format: pocket [white|black]"
+          : "Command only available in crazyhouse",
       );
     },
-    invalid: ctrl => ctrl.data.game.variant.key !== 'crazyhouse',
+    invalid: (ctrl) => ctrl.data.game.variant.key !== "crazyhouse",
   },
 ];
 
 const getCommand = (input: string) => {
-  const split = input.split(' ');
+  const split = input.split(" ");
   const firstWordLowerCase = split[0].toLowerCase();
   return (
-    inputCommands.find(c => c.cmd === input.toLowerCase()) ||
-    inputCommands.find(c => split.length !== 1 && c.cmd === firstWordLowerCase)
+    inputCommands.find((c) => c.cmd === input.toLowerCase()) ||
+    inputCommands.find(
+      (c) => split.length !== 1 && c.cmd === firstWordLowerCase,
+    )
   ); // 'next line' should not be interpreted as 'next'
 };
 
 function sendMove(uciOrDrop: string | DropMove, ctrl: AnalyseCtrl) {
-  if (typeof uciOrDrop === 'string')
+  if (typeof uciOrDrop === "string")
     ctrl.sendMove(
       uciOrDrop.slice(0, 2) as Key,
       uciOrDrop.slice(2, 4) as Key,
       undefined,
       charToRole(uciOrDrop.slice(4)),
     );
-  else if (ctrl.crazyValid(uciOrDrop.role, uciOrDrop.key)) ctrl.sendNewPiece(uciOrDrop.role, uciOrDrop.key);
+  else if (ctrl.crazyValid(uciOrDrop.role, uciOrDrop.key))
+    ctrl.sendNewPiece(uciOrDrop.role, uciOrDrop.key);
 }
 
 function renderAcpl({ ctrl, moveStyle }: AnalyseNvuiContext): LooseVNodes {
   const analysis = ctrl.data.analysis;
   if (!analysis || ctrl.retro) return undefined;
-  const analysisGlyphs = ['?!', '?', '??'];
-  const analysisNodes = ctrl.mainline.filter(n => n.glyphs?.find(g => analysisGlyphs.includes(g.symbol)));
+  const analysisGlyphs = ["?!", "?", "??"];
+  const analysisNodes = ctrl.mainline.filter((n) =>
+    n.glyphs?.find((g) => analysisGlyphs.includes(g.symbol)),
+  );
   const res: Array<VNode> = [];
-  COLORS.forEach(color => {
-    res.push(hl('h3', `${color} player: ${analysis[color].acpl} ${i18n.site.averageCentipawnLoss}`));
+  COLORS.forEach((color) => {
     res.push(
       hl(
-        'select',
+        "h3",
+        `${color} player: ${analysis[color].acpl} ${i18n.site.averageCentipawnLoss}`,
+      ),
+    );
+    res.push(
+      hl(
+        "select",
         {
           hook: bind(
-            'change',
-            e => ctrl.jumpToMain(parseInt((e.target as HTMLSelectElement).value)),
+            "change",
+            (e) =>
+              ctrl.jumpToMain(parseInt((e.target as HTMLSelectElement).value)),
             ctrl.redraw,
           ),
         },
         analysisNodes
-          .filter(n => (n.ply % 2 === 1) === (color === 'white'))
-          .map(node =>
+          .filter((n) => (n.ply % 2 === 1) === (color === "white"))
+          .map((node) =>
             hl(
-              'option',
-              { attrs: { value: node.ply, selected: node.ply === ctrl.node.ply } },
+              "option",
+              {
+                attrs: {
+                  value: node.ply,
+                  selected: node.ply === ctrl.node.ply,
+                },
+              },
               [
                 plyToTurn(node.ply),
                 renderSan(node.san!, node.uci, moveStyle.get()),
                 renderComments(node, moveStyle.get()),
-              ].join(' '),
+              ].join(" "),
             ),
           ),
       ),
@@ -492,19 +1075,25 @@ function renderAcpl({ ctrl, moveStyle }: AnalyseNvuiContext): LooseVNodes {
   return res;
 }
 
-const requestAnalysisBtn = ({ ctrl, notify, analysisInProgress }: AnalyseNvuiContext) => {
+const requestAnalysisBtn = ({
+  ctrl,
+  notify,
+  analysisInProgress,
+}: AnalyseNvuiContext) => {
   if (ctrl.ongoing || ctrl.synthetic || ctrl.hasFullComputerAnalysis()) return;
   return analysisInProgress()
-    ? hl('p', 'Server-side analysis in progress')
+    ? hl("p", "Server-side analysis in progress")
     : hl(
-        'button.request-analysis',
+        "button.request-analysis",
         clickHook(() =>
-          xhrText(`/${ctrl.data.game.id}/request-analysis`, { method: 'post' }).then(
+          xhrText(`/${ctrl.data.game.id}/request-analysis`, {
+            method: "post",
+          }).then(
             () => {
               analysisInProgress(true);
-              notify.set('Server-side analysis in progress');
+              notify.set("Server-side analysis in progress");
             },
-            () => notify.set('Cannot run server-side analysis'),
+            () => notify.set("Cannot run server-side analysis"),
           ),
         ),
         i18n.site.requestAComputerAnalysis,
@@ -515,20 +1104,20 @@ function currentLineIndex(ctrl: AnalyseCtrl): { i: number; of: number } {
   if (ctrl.path === treePath.root) return { i: 1, of: 1 };
   const prevNode = ctrl.tree.parentNode(ctrl.path);
   return {
-    i: prevNode.children.findIndex(node => node.id === ctrl.node.id),
+    i: prevNode.children.findIndex((node) => node.id === ctrl.node.id),
     of: prevNode.children.length,
   };
 }
 
 function renderLineIndex(ctrl: AnalyseCtrl): string {
   const { i, of } = currentLineIndex(ctrl);
-  return of > 1 ? `, line ${i + 1} of ${of} ,` : '';
+  return of > 1 ? `, line ${i + 1} of ${of} ,` : "";
 }
 
 export function renderCurrentNode({
   ctrl,
   moveStyle,
-}: Pick<AnalyseNvuiContext, 'ctrl' | 'moveStyle'>): string {
+}: Pick<AnalyseNvuiContext, "ctrl" | "moveStyle">): string {
   const node = ctrl.node;
   if (!node.san || !node.uci) return i18n.nvui.gameStart;
   return [
@@ -538,13 +1127,15 @@ export function renderCurrentNode({
     renderLineIndex(ctrl),
     !ctrl.retro && renderComments(node, moveStyle.get()),
   ]
-    .filter(x => x)
-    .join(' ')
+    .filter((x) => x)
+    .join(" ")
     .trim();
 }
 
 const renderPlayer = (ctrl: AnalyseCtrl, player: Player): LooseVNodes =>
-  player.ai ? i18n.site.aiNameLevelAiLevel('Stockfish', player.ai) : userHtml(ctrl, player);
+  player.ai
+    ? i18n.site.aiNameLevelAiLevel("Stockfish", player.ai)
+    : userHtml(ctrl, player);
 
 function userHtml(ctrl: AnalyseCtrl, player: Player) {
   const d = ctrl.data,
@@ -552,43 +1143,39 @@ function userHtml(ctrl: AnalyseCtrl, player: Player) {
     perf = user ? user.perfs[d.game.perf] : null,
     rating = player.rating ? player.rating : perf && perf.rating,
     rd = player.ratingDiff,
-    ratingDiff = rd ? (rd > 0 ? '+' + rd : rd < 0 ? '−' + -rd : '') : '';
+    ratingDiff = rd ? (rd > 0 ? "+" + rd : rd < 0 ? "−" + -rd : "") : "";
   const studyPlayers = ctrl.study && renderStudyPlayer(ctrl, player.color);
   return user
-    ? hl('span', [
+    ? hl("span", [
         hl(
-          'a',
-          { attrs: { href: '/@/' + user.username } },
+          "a",
+          { attrs: { href: "/@/" + user.username } },
           user.title ? `${user.title} ${user.username}` : user.username,
         ),
         rating ? ` ${rating}` : ``,
-        ' ' + ratingDiff,
+        " " + ratingDiff,
       ])
-    : studyPlayers || hl('span', i18n.site.anonymous);
+    : studyPlayers || hl("span", i18n.site.anonymous);
 }
 
 function renderStudyPlayer(ctrl: AnalyseCtrl, color: Color): VNode | undefined {
   const player = ctrl.study?.currentChapter().players?.[color];
   const keys = [
-    ['name', i18n.site.name],
-    ['title', 'title'],
-    ['rating', i18n.site.rating],
-    ['fed', 'fed'],
-    ['team', 'team'],
+    ["name", i18n.site.name],
+    ["title", "title"],
+    ["rating", i18n.site.rating],
+    ["fed", "fed"],
+    ["team", "team"],
   ] as const;
   return (
     player &&
     hl(
-      'span',
+      "span",
       keys
-        .reduce<string[]>(
-          (strs, [key, i18n]) =>
-            player[key]
-              ? strs.concat(`${i18n}: ${key === 'fed' ? player[key].i18nName : player[key]}`)
-              : strs,
-          [],
-        )
-        .join(' '),
+        .reduce<
+          string[]
+        >((strs, [key, i18n]) => (player[key] ? strs.concat(`${i18n}: ${key === "fed" ? player[key].i18nName : player[key]}`) : strs), [])
+        .join(" "),
     )
   );
 }
@@ -609,29 +1196,32 @@ function jumpLine(ctrl: AnalyseCtrl, delta: number) {
   ctrl.userJumpIfCan(newPath);
 }
 
-const redirectToSelectedHook = bind('change', (e: InputEvent) => {
+const redirectToSelectedHook = bind("change", (e: InputEvent) => {
   const target = e.target as HTMLSelectElement;
   const selectedOption = target.options[target.selectedIndex];
-  const url = selectedOption.getAttribute('url');
+  const url = selectedOption.getAttribute("url");
   if (url) window.location.href = url;
 });
 
 function tourDetails({ ctrl, deps }: AnalyseNvuiContext): VNode[] {
-  const ctx: RelayViewContext = { ...viewContext(ctrl, deps), allowVideo: false } as RelayViewContext;
+  const ctx: RelayViewContext = {
+    ...viewContext(ctrl, deps),
+    allowVideo: false,
+  } as RelayViewContext;
   const tour = ctx.relay.data.tour;
   ctx.relay.redraw = ctrl.redraw;
 
   return [
-    hl('h1', 'Tour details'),
-    hl('h2', 'Overview'),
-    hl('div', tourOverview(tour.info, tour.dates)),
-    hl('h2', 'Players'),
+    hl("h1", "Tour details"),
+    hl("h2", "Overview"),
+    hl("div", tourOverview(tour.info, tour.dates)),
+    hl("h2", "Players"),
     hl(
-      'button.tournament-players',
-      clickHook(() => ctx.relay.tab('players'), ctrl.redraw),
-      'Load player list',
+      "button.tournament-players",
+      clickHook(() => ctx.relay.tab("players"), ctrl.redraw),
+      "Load player list",
     ),
-    hl('div', ctx.relay.tab() === 'players' && playersView(ctx.relay.players)),
+    hl("div", ctx.relay.tab() === "players" && playersView(ctx.relay.players)),
   ];
 }
 
@@ -643,25 +1233,30 @@ function studyDetails(ctrl: AnalyseCtrl) {
   const hash = window.location.hash;
   return (
     study &&
-    hl('div.study-details', [
-      hl('h2', 'Study details'),
-      hl('span', `Title: ${study.data.name}. By: ${study.data.ownerId}`),
-      hl('br'),
+    hl("div.study-details", [
+      hl("h2", "Study details"),
+      hl("span", `Title: ${study.data.name}. By: ${study.data.ownerId}`),
+      hl("br"),
       relayGroups &&
         hl(
-          'div.relay-groups',
-          hl('label', [
-            'Current group:',
+          "div.relay-groups",
+          hl("label", [
+            "Current group:",
             hl(
-              'select',
+              "select",
               {
-                attrs: { autofocus: hash === '#group-select' },
+                attrs: { autofocus: hash === "#group-select" },
                 hook: redirectToSelectedHook,
               },
-              relayGroups.tours.map(t =>
+              relayGroups.tours.map((t) =>
                 hl(
-                  'option',
-                  { attrs: { selected: t.id === tour?.id, url: `/broadcast/-/${t.id}#group-select` } },
+                  "option",
+                  {
+                    attrs: {
+                      selected: t.id === tour?.id,
+                      url: `/broadcast/-/${t.id}#group-select`,
+                    },
+                  },
                   t.name,
                 ),
               ),
@@ -671,18 +1266,18 @@ function studyDetails(ctrl: AnalyseCtrl) {
       tour &&
         relayRounds &&
         hl(
-          'div.relay-rounds',
-          hl('label', [
-            'Current round:',
+          "div.relay-rounds",
+          hl("label", [
+            "Current round:",
             hl(
-              'select',
+              "select",
               {
-                attrs: { autofocus: hash === '#round-select' },
+                attrs: { autofocus: hash === "#round-select" },
                 hook: redirectToSelectedHook,
               },
-              relayRounds.map(r =>
+              relayRounds.map((r) =>
                 hl(
-                  'option',
+                  "option",
                   {
                     attrs: {
                       selected: r.id === study.data.id,
@@ -695,47 +1290,56 @@ function studyDetails(ctrl: AnalyseCtrl) {
             ),
           ]),
         ),
-      hl('div.chapters', [
-        hl('label', [
-          'Current chapter:',
+      hl("div.chapters", [
+        hl("label", [
+          "Current chapter:",
           hl(
-            'select',
+            "select",
             {
-              attrs: { id: 'chapter-select' },
-              hook: bind('change', (e: InputEvent) => {
+              attrs: { id: "chapter-select" },
+              hook: bind("change", (e: InputEvent) => {
                 const target = e.target as HTMLSelectElement;
                 const selectedOption = target.options[target.selectedIndex];
-                const chapterId = selectedOption.getAttribute('chapterId');
+                const chapterId = selectedOption.getAttribute("chapterId");
                 study.setChapter(chapterId!);
               }),
             },
-            study.chapters.list
-              .all()
-              .map((ch, i) =>
-                hl(
-                  'option',
-                  { attrs: { selected: ch.id === study.currentChapter().id, chapterId: ch.id } },
-                  `${i + 1}. ${ch.name}`,
-                ),
+            study.chapters.list.all().map((ch, i) =>
+              hl(
+                "option",
+                {
+                  attrs: {
+                    selected: ch.id === study.currentChapter().id,
+                    chapterId: ch.id,
+                  },
+                },
+                `${i + 1}. ${ch.name}`,
               ),
+            ),
           ),
         ]),
         study.members.canContribute()
-          ? hl('div.buttons', [
+          ? hl("div.buttons", [
               hl(
-                'button.edit-chapter',
-                clickHook(() => study.chapters.editForm.toggle(study.currentChapter()), ctrl.redraw),
+                "button.edit-chapter",
+                clickHook(
+                  () => study.chapters.editForm.toggle(study.currentChapter()),
+                  ctrl.redraw,
+                ),
                 [
-                  'Edit current chapter',
-                  study.chapters.editForm.current() && chapterEditFormView(study.chapters.editForm),
+                  "Edit current chapter",
+                  study.chapters.editForm.current() &&
+                    chapterEditFormView(study.chapters.editForm),
                 ],
               ),
               hl(
-                'button.create-chapter',
+                "button.create-chapter",
                 clickHook(() => study.chapters.newForm.toggle(), ctrl.redraw),
                 [
-                  'Add new chapter',
-                  study.chapters.newForm.isOpen() ? chapterNewFormView(study.chapters.newForm) : undefined,
+                  "Add new chapter",
+                  study.chapters.newForm.isOpen()
+                    ? chapterNewFormView(study.chapters.newForm)
+                    : undefined,
                 ],
               ),
             ])
@@ -745,14 +1349,17 @@ function studyDetails(ctrl: AnalyseCtrl) {
   );
 }
 
-const doAndRedraw = (ctrl: AnalyseCtrl, fn: (ctrl: AnalyseCtrl) => void): void => {
+const doAndRedraw = (
+  ctrl: AnalyseCtrl,
+  fn: (ctrl: AnalyseCtrl) => void,
+): void => {
   fn(ctrl);
   ctrl.redraw();
 };
 
 function jumpMoveOrLine(ctrl: AnalyseCtrl) {
   return (e: KeyboardEvent) => {
-    if (e.key === 'A') doAndRedraw(ctrl, e.altKey ? jumpPrevLine : prev);
-    else if (e.key === 'D') doAndRedraw(ctrl, e.altKey ? jumpNextLine : next);
+    if (e.key === "A") doAndRedraw(ctrl, e.altKey ? jumpPrevLine : prev);
+    else if (e.key === "D") doAndRedraw(ctrl, e.altKey ? jumpNextLine : next);
   };
 }
