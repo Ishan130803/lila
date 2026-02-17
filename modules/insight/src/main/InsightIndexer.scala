@@ -86,9 +86,9 @@ final private class InsightIndexer(
         gameRepo
           .sortedCursor(query, Query.sortChronological)
           .documentSource(maxGames.value)
-          .mapAsync(16)(toEntry)
+          .mapAsync(8)(toEntry)
           .via(LilaStream.collect)
           .grouped(100.atMost(maxGames.value))
-          .map(storage.bulkInsert)
+          .mapAsync(1)(storage.bulkInsert)
           .run()
           .void

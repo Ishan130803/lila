@@ -1,6 +1,5 @@
 import { type TournamentSocket, makeSocket } from './socket';
 import * as xhr from './xhr';
-import { maxPerPage, myPage, players } from './pagination';
 import * as sound from './sound';
 import type {
   TournamentData,
@@ -15,6 +14,7 @@ import { storage, storedMapAsProp } from 'lib/storage';
 import { pubsub } from 'lib/pubsub';
 import { alerts, prompt } from 'lib/view';
 import type { Prop } from 'lib';
+import { maxPerPage, myPage, pagerData } from 'lib/view/pagination';
 
 interface CtrlTeamInfo {
   requested?: string;
@@ -75,7 +75,7 @@ export default class TournamentController {
     const willChangeJoinStatus = !!this.data.me !== !!data.me || this.data.me?.withdraw !== data.me?.withdraw;
     // we joined a private tournament! Reload the page to load the chat
     if (!this.data.me && data.me && this.data.private) site.reload();
-    this.data = { ...this.data, ...data, ...{ me: data.me } }; // to account for removal on withdraw
+    this.data = { ...this.data, ...data, me: data.me }; // to account for removal on withdraw
     if (data.playerInfo?.player.id === this.playerInfo.id) this.playerInfo.data = data.playerInfo!;
     this.loadPage(data.standing);
     if (this.focusOnMe) this.scrollToMe();
@@ -116,12 +116,14 @@ export default class TournamentController {
     }, delay);
   };
 
+  pager = () => pagerData(this);
+
   loadPage = (data: Standing) => {
     if (!data.failed || !this.pages[data.page]) this.pages[data.page] = data.players;
   };
 
   setPage = (page: number | undefined) => {
-    if (page && page !== this.page && page >= 1 && page <= players(this).nbPages) {
+    if (page && page !== this.page && page >= 1 && page <= this.pager().nbPages) {
       this.page = page;
       xhr.loadPage(this, page);
     }
@@ -158,7 +160,7 @@ export default class TournamentController {
 
   userNextPage = () => this.userSetPage(this.page + 1);
   userPrevPage = () => this.userSetPage(this.page - 1);
-  userLastPage = () => this.userSetPage(players(this).nbPages);
+  userLastPage = () => this.userSetPage(this.pager().nbPages);
 
   withdraw = () => {
     xhr.withdraw(this);

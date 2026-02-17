@@ -13,6 +13,7 @@
 }
 
 .puzzle__moves {
+  @include prevent-select;
   flex: 2 1 auto;
   overflow: auto;
   border-bottom: $border;

@@ -308,7 +308,7 @@ final class StudyApi(
           .replace(newVariant)
         for
           _ <- chapterRepo.update(chapter)
-          _ = onChapterChange(studyId, chapterId, who)
+          _ = reloadStudy(studyId, who)
         yield chapter.some
 
   def clearAnnotations(studyId: StudyId, chapterId: StudyChapterId)(who: Who) =
@@ -316,14 +316,14 @@ final class StudyApi(
       case Study.WithChapter(study, chapter) =>
         Contribute(who.u, study):
           val newChapter = chapter.updateRoot(_.clearAnnotationsRecursively.some) | chapter
-          for _ <- chapterRepo.update(newChapter) yield onChapterChange(study.id, chapter.id, who)
+          for _ <- chapterRepo.update(newChapter) yield reloadStudy(study.id, who)
 
   def clearVariations(studyId: StudyId, chapterId: StudyChapterId)(who: Who) =
     sequenceStudyWithChapter(studyId, chapterId):
       case Study.WithChapter(study, chapter) =>
         Contribute(who.u, study):
           for _ <- chapterRepo.update(chapter.copy(root = chapter.root.clearVariations))
-          yield onChapterChange(study.id, chapter.id, who)
+          yield reloadStudy(study.id, who)
 
   // rewrites the whole chapter because of `forceVariation`. Very inefficient.
   def promote(studyId: StudyId, position: Position.Ref, toMainline: Boolean)(using who: Who): Funit =
@@ -397,8 +397,8 @@ final class StudyApi(
 
   export studyRepo.{ isMember, isContributor }
 
-  private def onChapterChange(id: StudyId, chapterId: StudyChapterId, who: Who) =
-    sendTo(id)(_.updateChapter(chapterId, who))
+  private def reloadStudy(id: StudyId, who: Who) =
+    sendTo(id)(_.reloadStudy(who))
     setStudyUpdated(id)
 
   private def onMembersChange(
@@ -669,12 +669,12 @@ final class StudyApi(
                   newChapter.practice != chapter.practice ||
                   newChapter.gamebook != chapter.gamebook ||
                   newChapter.description != chapter.description
+              shouldSendChapterPreviews = newChapter.name != chapter.name
               _ <- shouldResetPosition.so:
                 studyRepo.setPosition(study.id, study.position.withPath(UciPath.root))
             yield
-              if shouldReload // `updateChapter` makes the client reload the whole thing with XHR
-              then sendTo(study.id)(_.updateChapter(chapter.id, who))
-              else reloadChapters(study)
+              if shouldReload then sendTo(study.id)(_.reloadStudy(who))
+              if shouldSendChapterPreviews then sendChaperPreviews(study)
         }
 
   def descChapter(studyId: StudyId, data: ChapterMaker.DescData)(who: Who) =
@@ -716,7 +716,7 @@ final class StudyApi(
                     doSetChapter(study, newId, who)
             _ <- chapterRepo.delete(chapter.id)
           yield
-            reloadChapters(study)
+            sendChaperPreviews(study)
             setStudyUpdated(study)
         }
 
@@ -734,7 +734,7 @@ final class StudyApi(
   def sortChapters(studyId: StudyId, chapterIds: List[StudyChapterId])(who: Who): Funit =
     sequenceStudy(studyId): study =>
       Contribute(who.u, study):
-        for _ <- chapterRepo.sort(study, chapterIds) yield reloadChapters(study)
+        for _ <- chapterRepo.sort(study, chapterIds) yield sendChaperPreviews(study)
 
   def descStudy(studyId: StudyId, desc: String)(who: Who) =
     sequenceStudy(studyId): study =>
@@ -855,11 +855,9 @@ final class StudyApi(
   ) =
     sendTo(study.id)(_.reloadSriBecauseOf(sri, chapterId, reason))
 
-  def reloadChapters(study: Study) =
-    preview
-      .jsonList(study.id)
-      .foreach: previews =>
-        sendTo(study.id)(_.reloadChapters(previews))
+  def sendChaperPreviews(study: Study) =
+    for previews <- preview.jsonList(study.id)
+    do sendTo(study.id)(_.sendChapterPreviews(previews))
 
   private def canActAsOwner(study: Study, userId: UserId): Fu[Boolean] =
     fuccess(study.isOwner(userId)) >>| studyRepo.isAdminMember(study, userId) >>|

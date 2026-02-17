@@ -233,8 +233,6 @@ export interface Nb {
 }
 
 export interface Pagination {
-  currentPage: number;
-  maxPerPage: number;
   from: number;
   to: number;
   currentPageResults: Page;

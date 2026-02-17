@@ -15,8 +15,8 @@ final class InsightApi(
 
   import InsightApi.*
 
-  private val userCache = cacheApi[UserId, InsightUser](1024, "insight.user"):
-    _.expireAfterWrite(15.minutes).maximumSize(4096).buildAsyncFuture(computeUser)
+  private val userCache = cacheApi[UserId, InsightUser](512, "insight.user"):
+    _.expireAfterWrite(15.minutes).maximumSize(1_024).buildAsyncFuture(computeUser)
 
   private def computeUser(userId: UserId): Fu[InsightUser] =
     storage

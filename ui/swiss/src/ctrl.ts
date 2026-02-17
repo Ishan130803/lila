@@ -1,9 +1,9 @@
 import { makeSocket, type SwissSocket } from './socket';
 import xhr from './xhr';
 import { throttlePromiseDelay } from 'lib/async';
-import { maxPerPage, myPage, players } from './pagination';
 import type { SwissData, SwissOpts, Pages, Standing, Player } from './interfaces';
 import { storage } from 'lib/storage';
+import { maxPerPage, myPage, pagerData } from 'lib/view/pagination';
 
 export default class SwissCtrl {
   data: SwissData;
@@ -73,12 +73,14 @@ export default class SwissCtrl {
 
   scrollToMe = () => this.setPage(myPage(this));
 
+  pager = () => pagerData(this);
+
   loadPage = (data: Standing) => {
     this.pages[data.page] = this.readStanding(data).players;
   };
 
   setPage = (page: number | undefined) => {
-    if (page && page !== this.page && page >= 1 && page <= players(this).nbPages) {
+    if (page && page !== this.page && page >= 1 && page <= this.pager().nbPages) {
       this.page = page;
       xhr.loadPage(this, page);
     }
@@ -124,7 +126,7 @@ export default class SwissCtrl {
 
   userNextPage = () => this.userSetPage(this.page + 1);
   userPrevPage = () => this.userSetPage(this.page - 1);
-  userLastPage = () => this.userSetPage(players(this).nbPages);
+  userLastPage = () => this.userSetPage(this.pager().nbPages);
 
   showPlayerInfo = (player: Player) => {
     this.playerInfoId = this.playerInfoId === player.user.id ? undefined : player.user.id;

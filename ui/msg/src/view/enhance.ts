@@ -112,7 +112,8 @@ function expandGames(games: Expandable[]): void {
 
 const expandGame = async (exp: Expandable) => {
   const $lpv = $('<div>');
-  const wrapper = exp.element.parentElement!.parentElement!;
+  const wrapper = exp.element.parentElement?.parentElement;
+  if (!wrapper) return;
   const backup = wrapper.cloneNode(true);
   wrapper.classList.add('has-embed');
   $(exp.element).replaceWith($('<div>').prepend($lpv));

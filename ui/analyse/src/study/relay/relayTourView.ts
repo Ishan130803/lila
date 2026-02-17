@@ -1,7 +1,7 @@
 import type AnalyseCtrl from '@/ctrl';
 import RelayCtrl, { type RelayTab } from './relayCtrl';
 import * as licon from 'lib/licon';
-import { bind, dataIcon, onInsert, hl, type LooseVNode, copyMeInput, enter } from 'lib/view';
+import { bind, dataIcon, onInsert, hl, type LooseVNode, copyMeInput } from 'lib/view';
 import { cmnToggleWrap } from 'lib/view/cmn-toggle';
 import type { VNode } from 'snabbdom';
 import { innerHTML, richHTML } from 'lib/richText';
@@ -342,11 +342,13 @@ const roundSelect = (relay: RelayCtrl, study: StudyCtrl) => {
     if (checkbox) checkbox.checked = false;
     relay.roundSelectShow(!checkbox);
   };
-  const extractHrefAndNavigate = (target: HTMLElement) => {
-    const href = $(target).find('a').attr('href') ?? $(target).parents('tr').find('a').attr('href');
+  const extractHrefAndNavigate = (e: PointerEvent, round: RelayRound) => {
+    if (e.metaKey) return;
+    const href = study.embeddablePath(relay.roundUrlWithHash(round));
     if (href && href.split('#')[0] !== window.location.pathname) {
       site.redirect(href);
     } else {
+      e.preventDefault();
       updateCheckboxAndToggle();
     }
   };
@@ -383,53 +385,35 @@ const roundSelect = (relay: RelayCtrl, study: StudyCtrl) => {
                 ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }),
           },
-          hl(
-            'table',
+          relay.data.rounds.map((round, i) =>
             hl(
-              'tbody',
-              relay.data.rounds.map((round, i) =>
+              'a.mselect__item',
+              {
+                attrs: { href: study.embeddablePath(relay.roundUrlWithHash(round)) },
+                class: {
+                  'current-round': round.id === study.data.id,
+                  'ongoing-round': !!round.ongoing,
+                },
+                on: {
+                  click: e => extractHrefAndNavigate(e, round),
+                },
+              },
+              [
+                hl('span.name', round.name),
                 hl(
-                  'tr.mselect__item',
-                  {
-                    class: {
-                      ['current-round']: round.id === study.data.id,
-                      ['ongoing-round']: !!round.ongoing,
-                    },
-                    attrs: {
-                      tabindex: 0,
-                    },
-                    on: {
-                      click: e => extractHrefAndNavigate(e.target as HTMLElement),
-                      keydown: enter(extractHrefAndNavigate),
-                    },
-                  },
-                  [
-                    hl(
-                      'td.name',
-                      hl(
-                        'a',
-                        {
-                          attrs: { href: study.embeddablePath(relay.roundUrlWithHash(round)), tabindex: -1 },
-                        },
-                        round.name,
-                      ),
-                    ),
-                    hl(
-                      'td.time',
-                      round.startsAt
-                        ? commonDateFormat(new Date(round.startsAt))
-                        : round.startsAfterPrevious &&
-                            i18n.broadcast.startsAfter(
-                              relay.data.rounds[i - 1] ? relay.data.rounds[i - 1].name : 'the previous round',
-                            ),
-                    ),
-                    hl(
-                      'td.status',
-                      roundStateIcon(round, false) || (!!round.startsAt && timeago(round.startsAt)),
-                    ),
-                  ],
+                  'span.time',
+                  round.startsAt
+                    ? commonDateFormat(new Date(round.startsAt))
+                    : round.startsAfterPrevious &&
+                        i18n.broadcast.startsAfter(
+                          relay.data.rounds[i - 1] ? relay.data.rounds[i - 1].name : 'the previous round',
+                        ),
                 ),
-              ),
+                hl(
+                  'span.status',
+                  roundStateIcon(round, false) || (!!round.startsAt && timeago(round.startsAt)),
+                ),
+              ],
             ),
           ),
         ),

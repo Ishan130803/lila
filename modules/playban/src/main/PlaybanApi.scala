@@ -147,10 +147,11 @@ final class PlaybanApi(
                 (c.estimateTotalSeconds / 10).atLeast(30).atMost(3 * 60)
               .exists(_ < nowSeconds - game.movedAt.toSeconds)
               .option:
+                val rageSitUpdate = RageSit.imbalanceInc(game, loser.color)
                 for
-                  _ <- save(Outcome.SitResign, loserId, RageSit.imbalanceInc(game, loser.color), game.source)
+                  _ <- save(Outcome.SitResign, loserId, rageSitUpdate, game.source)
                   _ <- propagateSitting(game, loserId)
-                yield feedback.sitting(Pov(game, loser.color))
+                yield sittingFeedback(game, loser.color, rageSitUpdate)
               .getOrElse:
                 good(game, status, !w)
         )

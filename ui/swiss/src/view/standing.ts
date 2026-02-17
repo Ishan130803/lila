@@ -3,7 +3,7 @@ import * as licon from 'lib/licon';
 import { bind, type MaybeVNodes, onInsert } from 'lib/view';
 import type SwissCtrl from '../ctrl';
 import { player as renderPlayer } from './util';
-import type { Player, Pager } from '../interfaces';
+import type { Player } from '../interfaces';
 
 function playerTr(ctrl: SwissCtrl, player: Player) {
   const userId = player.user.id;
@@ -55,7 +55,8 @@ let lastBody: MaybeVNodes | undefined;
 
 const preloadUserTips = (vn: VNode) => site.powertip.manualUserIn(vn.elm as HTMLElement);
 
-export default function standing(ctrl: SwissCtrl, pag: Pager, klass?: string): VNode {
+export default function standing(ctrl: SwissCtrl, klass?: string): VNode {
+  const pag = ctrl.pager();
   const tableBody = pag.currentPageResults
     ? pag.currentPageResults.map(res => playerTr(ctrl, res))
     : lastBody;
