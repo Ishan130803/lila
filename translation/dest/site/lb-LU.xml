@@ -862,6 +862,7 @@
   <string name="playVariationToCreateConditionalPremoves">Variant spillen fir bedingt Virauszich ze kreéieren</string>
   <string name="noConditionalPremoves">Keng bedingt Virauszich</string>
   <string name="playX">Spill %s</string>
+  <string name="challengeX">%s erausfuerderen</string>
   <plurals name="andSaveNbPremoveLines">
     <item quantity="one">an späicher %s bedingten Virauszuch</item>
     <item quantity="other">an späicher %s bedingt Virauszich</item>
