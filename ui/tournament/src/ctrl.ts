@@ -56,7 +56,10 @@ export default class TournamentController {
     );
     setTimeout(() => (this.disableClicks = false), 1500);
     this.loadPage(this.data.standing);
-    this.scrollToMe();
+    const playerInfo = opts.data.playerInfo;
+    if (playerInfo) {
+      this.playerInfo = { id: playerInfo.player.id, player: playerInfo.player, data: playerInfo };
+    } else this.scrollToMe();
     sound.end(this.data);
     sound.countDown(this.data);
     this.setupBattle();

@@ -45,6 +45,23 @@ site.load.then(() => {
       const form = $(this).parent().toggleClass('on off')[0] as HTMLFormElement;
       xhr.text(`${form.action}?unsub=${this.dataset.unsub}`, { method: 'post' });
       return false;
+    })
+    .on('click', '.reactions-auth button', e => {
+      const href = e.target.getAttribute('data-href');
+      if (href) {
+        const $rels = $(e.target).parent();
+        if ($rels.hasClass('loading')) return;
+        $rels.addClass('loading');
+        xhr.text(href, { method: 'post' }).then(
+          html => {
+            $rels.replaceWith(html);
+            $rels.removeClass('loading');
+          },
+          _ => {
+            site.announce({ msg: 'Failed to send forum post reaction' });
+          },
+        );
+      }
     });
   $('.forum-post__blocked button').on('click', e => {
     const el = (e.target as HTMLElement).parentElement!;
@@ -166,24 +183,6 @@ site.load.then(() => {
         replace: (mention: string) => '$1@' + mention + ' ',
       },
     ]);
-  });
-
-  $('.forum').on('click', '.reactions-auth button', e => {
-    const href = e.target.getAttribute('data-href');
-    if (href) {
-      const $rels = $(e.target).parent();
-      if ($rels.hasClass('loading')) return;
-      $rels.addClass('loading');
-      xhr.text(href, { method: 'post' }).then(
-        html => {
-          $rels.replaceWith(html);
-          $rels.removeClass('loading');
-        },
-        _ => {
-          site.announce({ msg: 'Failed to send forum post reaction' });
-        },
-      );
-    }
   });
 
   const replyStorage = tempStorage.make('forum.reply' + location.pathname);

@@ -356,10 +356,11 @@ final class TournamentApi(
     cached
       .ranking(tour)
       .map:
-        _.ranking
-          .get(userId)
-          .map:
-            _.value / 10 + 1
+        _.ranking.get(userId).map(_.value / 10 + 1)
+
+  def playerPage(tour: Tournament)(userId: UserId): Fu[Option[(Int, PlayerInfoExt)]] =
+    pageOf(tour, userId).flatMapz: page =>
+      playerInfo(tour, userId).map2(page -> _)
 
   private object updateNbPlayers:
     private val debouncer = Debouncer[TourId](scheduler.scheduleOnce(1.seconds, _), 64): tourId =>

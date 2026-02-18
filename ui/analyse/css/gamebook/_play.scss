@@ -202,6 +202,7 @@
     &.end {
       flex-flow: row;
       font-size: 0.8em;
+      align-items: stretch;
 
       button {
         @extend %flex-column;

@@ -200,10 +200,10 @@
     padding: 2vmin;
     font-size: 0.9em;
 
-    h2 {
+    &__back {
+      display: block;
       font-size: 1.5em;
-      margin-bottom: 0.6rem;
-      text-transform: uppercase;
+      margin-bottom: 0.8rem;
       &.long {
         font-size: 1.3em;
         letter-spacing: 0px;

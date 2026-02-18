@@ -114,12 +114,6 @@ export const bind = (ctrl: AnalyseCtrl) => {
     if (move) ctrl.explorerMove(move);
   });
 
-  [
-    ['b', '??'],
-    ['m', '?'],
-    ['i', '?!'],
-  ].forEach(([key, symbol]) => kbd.bind(key, () => ctrl.jumpToGlyphSymbol(ctrl.bottomColor(), symbol)));
-
   if (!ctrl.study) return;
 
   keyToMouseEvent('d', 'mousedown', '.study__buttons .comments');

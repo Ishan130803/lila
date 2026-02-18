@@ -67,8 +67,9 @@ export function main(ctrl: RoundController): VNode {
 }
 
 export function endGameView(): void {
-  if ($('body').hasClass('zen-auto') && $('body').hasClass('zen')) {
-    $('body').toggleClass('zen');
+  const $body = $('body');
+  if ($body.hasClass('zen-auto') && $body.hasClass('zen')) {
+    $body.toggleClass('zen');
     window.dispatchEvent(new Event('resize'));
   }
 }

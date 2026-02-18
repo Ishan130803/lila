@@ -8,7 +8,7 @@ import lila.common.HTTPRequest
 import lila.common.Json.given
 import scalalib.data.Preload
 import lila.gathering.Condition.GetMyTeamIds
-import lila.tournament.{ MyInfo, Tournament as Tour, TournamentForm }
+import lila.tournament.{ MyInfo, Tournament as Tour, TournamentForm, PlayerInfoExt }
 
 final class Tournament(env: Env, apiC: => Api)(using akka.stream.Materializer) extends LilaController(env):
 
@@ -72,10 +72,14 @@ final class Tournament(env: Env, apiC: => Api)(using akka.stream.Materializer) e
           myInfo <- ctx.me.so { jsonView.fetchMyInfo(tour, _) }
           verdicts <- api.getVerdicts(tour, myInfo.isDefined)
           version <- env.tournament.version(tour.id)
+          playerId = getUserStr("player").map(_.id)
+          (page, playerInfo) <- playerId
+            .so(api.playerPage(tour))
+            .map(_.fold(page -> none)((page, player) => page.some -> player.some))
           json <- jsonView(
             tour = tour,
             page = page,
-            playerInfoExt = none,
+            playerInfoExt = playerInfo,
             socketVersion = version.some,
             partial = false,
             withScores = true,
