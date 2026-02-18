@@ -17,6 +17,31 @@ import { plyStep } from '../util';
 import type { Step } from '../interfaces';
 import { next, prev } from '../keyboard';
 import { COLORS, opposite } from 'chessops';
+import { AdvancedBlindModeCommands, type RegexParserKeyboardActionsType } from 'lib/nvui/chess';
+import {
+  abort_game_regex,
+  announce_current_square_regex,
+  announce_current_time_regex,
+  announce_last_captured_piece_regex,
+  announce_last_move_regex,
+  announce_opponent_name_regex,
+  announce_possible_captures_regex,
+  bishop_moves_regex,
+  castling_moves_regex,
+  files_regex,
+  find_piece_regex,
+  king_moves_regex,
+  knight_moves_regex,
+  offer_draw_regex,
+  pawn_capture_and_moves_regex,
+  pawn_promotions_regex,
+  propose_takeback_regex,
+  queen_moves_regex,
+  ranks_regex,
+  resign_regex,
+  rook_moves_regex,
+} from 'lib/nvui/regex';
+import type { Notify } from 'lib/nvui/notify';
 
 const selectSound = () => site.sound.play('select');
 const borderSound = () => site.sound.play('outOfBound');
@@ -49,62 +74,74 @@ export function renderNvui(ctx: RoundNvuiContext): VNode {
     pieceStyle.set('name');
     prefixStyle.set('name');
     boardStyle.set('plain');
-    return hl('div.nvui', { hook: onInsert(_ => setTimeout(() => notify.set(gameText(ctrl)), 2000)) }, [
-      pageStyle.get() === 'actions-board'
-        ? [ctrl.isPlaying() && inputForm(ctx), renderActions(ctx), renderBoard(ctx)]
-        : [
-            renderBoard(ctx),
-            renderTouchDeviceCommands(ctx),
-            renderActions(ctx),
-            ctrl.isPlaying() && inputForm(ctx),
-          ],
-      gameInfo(ctx),
-      hl('h2', i18n.site.advancedSettings),
-      hl('label', [noTrans('Move notation'), renderSetting(moveStyle, ctrl.redraw)]),
-      hl('label', [noTrans('Page layout'), renderSetting(pageStyle, ctrl.redraw)]),
-      hl('label', [noTrans('Show position'), renderSetting(positionStyle, ctrl.redraw)]),
-      hl('h2', i18n.keyboardMove.keyboardInputCommands),
-      hl('p', [
-        i18n.nvui.inputFormCommandList,
-        hl('br'),
-        i18n.nvui.movePiece,
-        hl('br'),
-        i18n.nvui.promotion,
-        hl('br'),
-        inputCommands
-          .filter(c => !c.invalid?.(ctrl))
-          .flatMap(cmd => [`${cmd.cmd}${cmd.alt ? ` / ${cmd.alt}` : ''}: `, cmd.help, hl('br')]),
-      ]),
-    ]);
+    return hl(
+      'div.nvui',
+      {
+        hook: onInsert(_ => setTimeout(() => notify.set(gameText(ctrl)), 2000)),
+      },
+      [
+        pageStyle.get() === 'actions-board'
+          ? [ctrl.isPlaying() && inputForm(ctx), renderActions(ctx), renderBoard(ctx)]
+          : [
+              renderBoard(ctx),
+              renderTouchDeviceCommands(ctx),
+              renderActions(ctx),
+              ctrl.isPlaying() && inputForm(ctx),
+            ],
+        gameInfo(ctx),
+        hl('h2', i18n.site.advancedSettings),
+        hl('label', [noTrans('Move notation'), renderSetting(moveStyle, ctrl.redraw)]),
+        hl('label', [noTrans('Page layout'), renderSetting(pageStyle, ctrl.redraw)]),
+        hl('label', [noTrans('Show position'), renderSetting(positionStyle, ctrl.redraw)]),
+        hl('h2', i18n.keyboardMove.keyboardInputCommands),
+        hl('p', [
+          i18n.nvui.inputFormCommandList,
+          hl('br'),
+          i18n.nvui.movePiece,
+          hl('br'),
+          i18n.nvui.promotion,
+          hl('br'),
+          inputCommands
+            .filter(c => !c.invalid?.(ctrl))
+            .flatMap(cmd => [`${cmd.cmd}${cmd.alt ? ` / ${cmd.alt}` : ''}: `, cmd.help, hl('br')]),
+        ]),
+      ],
+    );
   } else
-    return hl('div.nvui', { hook: onInsert(_ => setTimeout(() => notify.set(gameText(ctrl)), 2000)) }, [
-      gameInfo(ctx),
-      ctrl.isPlaying() && inputForm(ctx),
-      pageStyle.get() === 'actions-board'
-        ? [renderActions(ctx), renderBoard(ctx)]
-        : [renderBoard(ctx), renderActions(ctx)],
-      hl('h2', i18n.site.advancedSettings),
-      hl('label', [noTrans('Move notation'), renderSetting(moveStyle, ctrl.redraw)]),
-      hl('label', [noTrans('Page layout'), renderSetting(pageStyle, ctrl.redraw)]),
-      hl('h3', noTrans('Board settings')),
-      hl('label', [noTrans('Piece style'), renderSetting(pieceStyle, ctrl.redraw)]),
-      hl('label', [noTrans('Piece prefix style'), renderSetting(prefixStyle, ctrl.redraw)]),
-      hl('label', [noTrans('Show position'), renderSetting(positionStyle, ctrl.redraw)]),
-      hl('label', [noTrans('Board layout'), renderSetting(boardStyle, ctrl.redraw)]),
-      hl('h2', i18n.keyboardMove.keyboardInputCommands),
-      hl('p', [
-        i18n.nvui.inputFormCommandList,
-        hl('br'),
-        i18n.nvui.movePiece,
-        hl('br'),
-        i18n.nvui.promotion,
-        hl('br'),
-        inputCommands
-          .filter(c => !c.invalid?.(ctrl))
-          .flatMap(cmd => [`${cmd.cmd}${cmd.alt ? ` / ${cmd.alt}` : ''}: `, cmd.help, hl('br')]),
-      ]),
-      boardCommands(),
-    ]);
+    return hl(
+      'div.nvui',
+      {
+        hook: onInsert(_ => setTimeout(() => notify.set(gameText(ctrl)), 2000)),
+      },
+      [
+        gameInfo(ctx),
+        ctrl.isPlaying() && inputForm(ctx),
+        pageStyle.get() === 'actions-board'
+          ? [renderActions(ctx), renderBoard(ctx)]
+          : [renderBoard(ctx), renderActions(ctx)],
+        hl('h2', i18n.site.advancedSettings),
+        hl('label', [noTrans('Move notation'), renderSetting(moveStyle, ctrl.redraw)]),
+        hl('label', [noTrans('Page layout'), renderSetting(pageStyle, ctrl.redraw)]),
+        hl('h3', noTrans('Board settings')),
+        hl('label', [noTrans('Piece style'), renderSetting(pieceStyle, ctrl.redraw)]),
+        hl('label', [noTrans('Piece prefix style'), renderSetting(prefixStyle, ctrl.redraw)]),
+        hl('label', [noTrans('Show position'), renderSetting(positionStyle, ctrl.redraw)]),
+        hl('label', [noTrans('Board layout'), renderSetting(boardStyle, ctrl.redraw)]),
+        hl('h2', i18n.keyboardMove.keyboardInputCommands),
+        hl('p', [
+          i18n.nvui.inputFormCommandList,
+          hl('br'),
+          i18n.nvui.movePiece,
+          hl('br'),
+          i18n.nvui.promotion,
+          hl('br'),
+          inputCommands
+            .filter(c => !c.invalid?.(ctrl))
+            .flatMap(cmd => [`${cmd.cmd}${cmd.alt ? ` / ${cmd.alt}` : ''}: `, cmd.help, hl('br')]),
+        ]),
+        boardCommands(),
+      ],
+    );
 }
 
 function inputForm(ctx: RoundNvuiContext): LooseVNodes {
@@ -134,7 +171,6 @@ function inputForm(ctx: RoundNvuiContext): LooseVNodes {
               name: 'move',
               type: 'text',
               autocomplete: 'off',
-              autofocus: true,
             },
           }),
         ]),
@@ -164,9 +200,17 @@ function gameInfo(ctx: RoundNvuiContext): LooseVNodes {
     pockets && hl('h2', i18n.nvui.pockets),
     pockets && nv.renderPockets(pockets),
     hl('h2', i18n.nvui.gameStatus),
-    hl('div.status', { attrs: { role: 'status', 'aria-live': 'assertive', 'aria-atomic': 'true' } }, [
-      ctrl.data.game.status.name === 'started' ? i18n.site.playingRightNow : renderResult(ctrl),
-    ]),
+    hl(
+      'div.status',
+      {
+        attrs: {
+          role: 'status',
+          'aria-live': 'assertive',
+          'aria-atomic': 'true',
+        },
+      },
+      [ctrl.data.game.status.name === 'started' ? i18n.site.playingRightNow : renderResult(ctrl)],
+    ),
     hl('h2', i18n.nvui.lastMove),
     hl(
       'p.lastMove',
@@ -237,6 +281,18 @@ function renderTouchDeviceCommands(ctx: RoundNvuiContext): LooseVNodes {
   ];
 }
 
+function autoFocusAtStart(ctx: RoundNvuiContext): void {
+  const { ctrl } = ctx;
+  const color = ctrl.data.player.color;
+  if (color === 'white') {
+    const whiteKing = document.querySelector<HTMLButtonElement>('.board-wrapper button[rank="1"][file="e"]');
+    whiteKing?.focus();
+  } else {
+    const blackKing = document.querySelector<HTMLButtonElement>('.board-wrapper button[rank="8"][file="e"]');
+    blackKing?.focus();
+  }
+}
+
 function renderBoard(ctx: RoundNvuiContext): LooseVNodes {
   const { ctrl, prefixStyle, pieceStyle, positionStyle, boardStyle } = ctx;
 
@@ -244,7 +300,16 @@ function renderBoard(ctx: RoundNvuiContext): LooseVNodes {
     hl('h2', i18n.site.board),
     hl(
       'div.board',
-      { hook: { insert: el => boardEventsHook(ctx, el.elm as HTMLElement) } },
+      {
+        attrs: { tabindex: '-1' },
+        hook: {
+          insert: el => {
+            const boardEl = el.elm as HTMLElement;
+            boardEventsHook(ctx, boardEl);
+            autoFocusAtStart(ctx);
+          },
+        },
+      },
       nv.renderBoard(
         ctrl.chessground.state.pieces,
         ctrl.data.game.variant.key === 'racingKings'
@@ -274,56 +339,409 @@ function flipBoard(ctx: RoundNvuiContext): void {
 }
 
 function boardEventsHook(ctx: RoundNvuiContext, el: HTMLElement): void {
-  const { ctrl, prefixStyle, pieceStyle, moveStyle, deviceType } = ctx;
+  if (true) {
+    const { ctrl, notify, deviceType, pieceStyle, prefixStyle } = ctx;
+    const $board = $(el);
+    const $buttons = $board.find('button');
+    $buttons.on('blur', nv.leaveSquareHandler($buttons));
+    $buttons.on(
+      'click',
+      nv.selectionHandler(
+        () => ctrl.data.opponent.color,
+        deviceType.get() === 'touchscreen',
+        ctrl.data.game.variant.key === 'antichess',
+      ),
+    );
+    let currentActiveSquare: HTMLButtonElement | null = null;
 
-  const $board = $(el);
-  const $buttons = $board.find('button');
-  $buttons.on('blur', nv.leaveSquareHandler($buttons));
-  $buttons.on(
-    'click',
-    nv.selectionHandler(
-      () => ctrl.data.opponent.color,
-      deviceType.get() === 'touchscreen',
-      ctrl.data.game.variant.key === 'antichess',
-    ),
-  );
-  $buttons.on('keydown', (e: KeyboardEvent) => {
-    if (e.shiftKey && e.key.match(/^[ad]$/i)) nextOrPrev(ctrl)(e);
-    else if (e.key.match(/^x$/i))
-      scanDirectionsHandler(
-        ctrl.flip ? opposite(ctrl.data.player.color) : ctrl.data.player.color,
-        ctrl.chessground.state.pieces,
-        moveStyle.get(),
-      )(e);
-    else if (e.key.toLowerCase() === 'f') {
-      flipBoard(ctx);
-    } else if (['o', 'l', 't'].includes(e.key)) nv.boardCommandsHandler()(e);
-    else if (e.key.startsWith('Arrow'))
-      nv.arrowKeyHandler(
-        ctrl.flip ? opposite(ctrl.data.player.color) : ctrl.data.player.color,
-        borderSound,
-      )(e);
-    else if (e.key === 'c')
-      nv.lastCapturedCommandHandler(
-        () => ctrl.data.steps.map(step => step.fen),
-        pieceStyle.get(),
-        prefixStyle.get(),
-      )();
-    else if (e.code.match(/^Digit([1-8])$/)) nv.positionJumpHandler()(e);
-    else if (e.key.match(/^[kqrbnp]$/i))
-      nv.pieceJumpingHandler(selectSound, errorSound, ctrl.data.game.variant.key === 'antichess')(e);
-    else if (e.key.toLowerCase() === 'm')
-      nv.possibleMovesHandler(
-        ctrl.data.player.color,
-        ctrl.chessground,
-        ctrl.data.game.variant.key,
-        ctrl.data.steps,
-      )(e);
-    else if (e.key === 'i') {
-      e.preventDefault();
-      $('input.move').get(0)?.focus();
-    }
-  });
+    // const steps = () => ctrl.tree.getNodeList(ctrl.path);
+    // const fenSteps = () => steps().map((step) => step.fen);
+
+    $buttons.on('keydown', (e: KeyboardEvent) => {
+      currentActiveSquare = e.target as HTMLButtonElement;
+      notify.set(('Current pressed key is ' + e.key) as string);
+    });
+
+    let mode: 'view' | 'move' = 'view';
+
+    const boardDOMElement = $board.get(0) as HTMLElement;
+
+    const viewModeHandler = new nv.RegexParserKeyboardEventHandler(5000);
+    const moveModeHandler = new nv.RegexParserKeyboardEventHandler(5000);
+
+    const commonPatterns: RegexParserKeyboardActionsType[] = [
+      {
+        name: 'tellMode',
+        regex: `9`,
+        action: () => {
+          $('.boardstatus').text('Current Mode is ' + mode);
+        },
+      },
+      {
+        name: 'announcePossibleCaptures',
+        regex: announce_possible_captures_regex,
+        action: () => {
+          if (!currentActiveSquare) {
+            return;
+          }
+          AdvancedBlindModeCommands.announcePossibleCaptures(
+            ctrl.data.player.color,
+            ctrl.chessground,
+            ctrl.data.game.variant.key,
+            ctrl.data.steps,
+            currentActiveSquare,
+          );
+        },
+      },
+      {
+        name: 'flipBoard',
+        regex: 'zf',
+        action: () => {
+          $('.boardstatus').text('Flipping the boards');
+          setTimeout(() => flipBoard(ctx), 1000);
+        },
+      },
+      {
+        name: 'moveAround',
+        regex: '(j|k|l|i)',
+        action: buffer => {
+          if (!currentActiveSquare) {
+            return;
+          }
+          const bottomColor = ctrl.flip ? opposite(ctrl.data.player.color) : ctrl.data.player.color;
+          const isWhite: boolean = bottomColor === 'white';
+          let action: 'moveLeft' | 'moveUp' | 'moveDown' | 'moveRight';
+          switch (buffer.slice(-1)) {
+            case 'j':
+              action = 'moveLeft';
+              break;
+            case 'i':
+              action = 'moveUp';
+              break;
+            case 'k':
+              action = 'moveDown';
+              break;
+            case 'l':
+              action = 'moveRight';
+              break;
+          }
+          AdvancedBlindModeCommands[action!](isWhite, currentActiveSquare, borderSound);
+        },
+      },
+      {
+        name: 'lastMoveAnnouncement',
+        regex: announce_last_move_regex,
+        action: () => {
+          AdvancedBlindModeCommands.announceLastMove();
+        },
+      },
+      {
+        name: 'announceCurrentSquare',
+        regex: announce_current_square_regex,
+        action: () => {
+          if (!currentActiveSquare) {
+            return;
+          }
+          AdvancedBlindModeCommands.announceSquare(currentActiveSquare);
+        },
+      },
+      {
+        name: 'announceCurrentTime',
+        regex: announce_current_time_regex,
+        action: () => {
+          AdvancedBlindModeCommands.announceTime();
+        },
+      },
+      {
+        name: 'announceLastCapturedPiece',
+        regex: announce_last_captured_piece_regex,
+        action: () => {
+          nv.lastCapturedCommandHandler(
+            () => ctrl.data.steps.map(step => step.fen),
+            pieceStyle.get(),
+            prefixStyle.get(),
+          )();
+        },
+      },
+      {
+        name: 'proposeTakeback',
+        regex: propose_takeback_regex,
+        action: () => {
+          $('.nvui button.takeback-yes').trigger('click');
+        },
+      },
+      {
+        name: 'offerDraw',
+        regex: offer_draw_regex,
+        action: () => {
+          $('.nvui button.draw-yes').trigger('click');
+        },
+      },
+      {
+        name: 'resign',
+        regex: resign_regex,
+        action: () => {
+          $('.nvui button.resign').trigger('click');
+        },
+      },
+      {
+        name: 'abortGame',
+        regex: abort_game_regex,
+        action: () => {
+          $('.nvui button.abort').trigger('click');
+        },
+      },
+      {
+        name: 'announceOpponentName',
+        regex: announce_opponent_name_regex,
+        action: () => {
+          notify.set(playerText(ctrl));
+        },
+      },
+    ];
+
+    // Common keybindings (common to both view and move modes)
+    viewModeHandler
+      .registerInputPatterns(commonPatterns)
+      // View Mode Specific Commands
+      .registerInputPattern({
+        name: 'viewModeEnter',
+        regex: `v`,
+        action: () => {
+          $('.boardstatus').text('Entering view mode');
+          mode = 'view';
+        },
+      })
+      .registerInputPattern({
+        name: 'moveModeEnter',
+        regex: `m`,
+        action: () => {
+          $('.boardstatus').text('Entering move mode');
+          viewModeHandler.unbind();
+          moveModeHandler.bind(boardDOMElement);
+          mode = 'move';
+        },
+      })
+      .registerInputPattern({
+        name: 'jumpToRank',
+        regex: ranks_regex,
+        action: buffer => {
+          const rank = buffer.slice(-1);
+          if (!currentActiveSquare) {
+            return;
+          }
+          AdvancedBlindModeCommands.jumpToRank(currentActiveSquare, rank);
+        },
+      })
+      .registerInputPattern({
+        name: 'jumpToFile',
+        regex: files_regex,
+        action: buffer => {
+          const file = buffer.slice(-1);
+          if (!currentActiveSquare) {
+            return;
+          }
+          AdvancedBlindModeCommands.jumpToFile(currentActiveSquare, file);
+        },
+      })
+      .registerInputPattern({
+        name: 'prevOrNextLine',
+        regex: '(J|L)',
+        action: buffer => {
+          if (buffer.slice(-1) === 'J') {
+            doAndRedraw(ctrl, prev);
+          } else {
+            doAndRedraw(ctrl, next);
+          }
+        },
+      });
+
+    moveModeHandler
+      // Common keybindings (common to both view and move modes)
+      .registerInputPatterns(commonPatterns)
+      /*
+       You will Notice that I have a separate pattern for each piece class. Reason is that I want to in future allow users to switch the key they use to refer a piece. Let's say a user wants to change the way it addresses pawn. Instead of axb5, it can be like !x@5. That's why
+      */
+      .registerInputPattern({
+        name: 'viewModeEnter',
+        regex: `v`,
+        action: () => {
+          $('.boardstatus').text('Entering view mode');
+          moveModeHandler.unbind();
+          mode = 'view';
+          viewModeHandler.bind(boardDOMElement);
+        },
+      })
+      .registerInputPattern({
+        name: 'moveModeEnter',
+        regex: `m`,
+        action: () => {
+          $('.boardstatus').text('Entering move mode');
+          mode = 'move';
+        },
+      })
+      .registerInputPattern({
+        name: 'jumpToPiece',
+        regex: find_piece_regex,
+        action: input => {
+          if (!currentActiveSquare) {
+            return;
+          }
+          console.log(input, 'Triggered');
+          let reverse = false;
+          let piece = input.slice(1);
+          if (input[0] == 'F') {
+            reverse = true;
+          }
+
+          switch (piece.toLowerCase()) {
+            case 't':
+              piece = 'k';
+              break;
+            case 'p':
+              piece = 'b';
+              break;
+          }
+
+          AdvancedBlindModeCommands.jumpToPiece(reverse, piece, currentActiveSquare, selectSound, errorSound);
+        },
+      })
+      .registerInputPattern({
+        name: 'pawnMovesAndCaptures',
+        regex: pawn_capture_and_moves_regex,
+        action: input => {
+          console.log(input, 'Triggered');
+          playMove(input, ctrl, notify);
+        },
+      })
+      .registerInputPattern({
+        name: 'knight_moves',
+        regex: knight_moves_regex,
+        action: input => {
+          console.log(input, 'Triggered');
+          playMove(input, ctrl, notify);
+        },
+      })
+      .registerInputPattern({
+        name: 'queen_moves',
+        regex: queen_moves_regex,
+        action: input => {
+          console.log(input, 'Triggered');
+          playMove(input, ctrl, notify);
+        },
+      })
+      .registerInputPattern({
+        name: 'rook_moves',
+        regex: rook_moves_regex,
+        action: input => {
+          console.log(input, 'Triggered');
+          playMove(input, ctrl, notify);
+        },
+      })
+      .registerInputPattern({
+        name: 'bishop_moves',
+        regex: bishop_moves_regex,
+        action: input => {
+          console.log(input, 'Triggered');
+          input = 'B' + input.slice(1);
+          playMove(input, ctrl, notify);
+        },
+      })
+      .registerInputPattern({
+        name: 'king_moves',
+        regex: king_moves_regex,
+        action: input => {
+          console.log(input, 'Triggered');
+          input = 'k' + input.slice(1);
+          playMove(input, ctrl, notify);
+        },
+      })
+      .registerInputPattern({
+        name: 'castlings',
+        regex: castling_moves_regex,
+        action: input => {
+          if (input == 'o') input = 'O-O';
+          else if (input == 'O') input = 'O-O-O';
+          console.log(input, 'Triggered');
+          playMove(input, ctrl, notify);
+        },
+      })
+
+      .registerInputPattern({
+        name: 'pawn_promotions',
+        regex: pawn_promotions_regex,
+        action: input => {
+          console.log(input, 'Triggered');
+          let piece = input.slice(-1);
+          input = input.slice(0, -1) + '=';
+          switch (input.slice(-1)) {
+            case 'b':
+            case 'B':
+              piece = 'B';
+              break;
+          }
+          input = input + piece;
+
+          playMove(input, ctrl, notify);
+        },
+      });
+
+    viewModeHandler.compile();
+    moveModeHandler.compile();
+
+    moveModeHandler.bind(boardDOMElement);
+    mode = 'move';
+  } else {
+    const { ctrl, prefixStyle, pieceStyle, moveStyle, deviceType } = ctx;
+    const $board = $(el);
+    const $buttons = $board.find('button');
+    $buttons.on('blur', nv.leaveSquareHandler($buttons));
+    $buttons.on(
+      'click',
+      nv.selectionHandler(
+        () => ctrl.data.opponent.color,
+        deviceType.get() === 'touchscreen',
+        ctrl.data.game.variant.key === 'antichess',
+      ),
+    );
+
+    $buttons.on('keydown', (e: KeyboardEvent) => {
+      if (e.shiftKey && e.key.match(/^[ad]$/i)) nextOrPrev(ctrl)(e);
+      else if (e.key.match(/^x$/i))
+        scanDirectionsHandler(
+          ctrl.flip ? opposite(ctrl.data.player.color) : ctrl.data.player.color,
+          ctrl.chessground.state.pieces,
+          moveStyle.get(),
+        )(e);
+      else if (e.key.toLowerCase() === 'f') {
+        flipBoard(ctx);
+      } else if (['o', 'l', 't'].includes(e.key)) nv.boardCommandsHandler()(e);
+      else if (e.key.startsWith('Arrow'))
+        nv.arrowKeyHandler(
+          ctrl.flip ? opposite(ctrl.data.player.color) : ctrl.data.player.color,
+          borderSound,
+        )(e);
+      else if (e.key === 'c')
+        nv.lastCapturedCommandHandler(
+          () => ctrl.data.steps.map(step => step.fen),
+          pieceStyle.get(),
+          prefixStyle.get(),
+        )();
+      else if (e.code.match(/^Digit([1-8])$/)) nv.positionJumpHandler()(e);
+      else if (e.key.match(/^[kqrbnp]$/i)) nv.pieceJumpingHandler(selectSound, errorSound)(e);
+      else if (e.key.toLowerCase() === 'm')
+        nv.possibleMovesHandler(
+          ctrl.data.player.color,
+          ctrl.chessground,
+          ctrl.data.game.variant.key,
+          ctrl.data.steps,
+        )(e);
+      else if (e.key === 'i') {
+        e.preventDefault();
+        $('input.move').get(0)?.focus();
+      }
+    });
+  }
 }
 
 function createSubmitHandler(
@@ -371,6 +789,23 @@ function createSubmitHandler(
   };
 }
 
+function playMove(input: string, ctrl: RoundController, notify: Notify) {
+  const nvui = ctrl.nvui!;
+  const move = nv.inputToMove(input, plyStep(ctrl.data, ctrl.ply).fen, ctrl.chessground);
+  const isDrop = (u: undefined | string | nv.DropMove) => !!(u && typeof u !== 'string');
+  const isOpponentsTurn = ctrl.data.player.color !== ctrl.data.game.player;
+  const isInvalidDrop = (d: nv.DropMove) =>
+    !ctrl.crazyValid(d.role, d.key) || (!isOpponentsTurn && ctrl.chessground.state.pieces.has(d.key));
+
+  if (isOpponentsTurn) {
+    // if it is not the user's turn, store this input as a premove
+    nvui.premoveInput = input;
+    notify.set(i18n.nvui.premoveRecorded(input));
+  } else if (isDrop(move) && isInvalidDrop(move)) notify.set(`Invalid drop: ${input}`);
+  else if (move) sendMove(move, ctrl, !!nvui.premoveInput);
+  else notify.set(`${i18n.nvui.invalidMove}: ${input}`);
+}
+
 type Command =
   | 'board'
   | 'clock'
@@ -413,8 +848,16 @@ const inputCommands: InputCommand[] = [
     cb: notify => notify($('.lastMove').text()),
     alt: 'l',
   },
-  { cmd: 'abort', help: i18n.site.abortGame, cb: () => $('.nvui button.abort').trigger('click') },
-  { cmd: 'resign', help: i18n.site.resign, cb: () => $('.nvui button.resign').trigger('click') },
+  {
+    cmd: 'abort',
+    help: i18n.site.abortGame,
+    cb: () => $('.nvui button.abort').trigger('click'),
+  },
+  {
+    cmd: 'resign',
+    help: i18n.site.resign,
+    cb: () => $('.nvui button.resign').trigger('click'),
+  },
   {
     cmd: 'draw',
     help: i18n.keyboardMove.offerOrAcceptDraw,

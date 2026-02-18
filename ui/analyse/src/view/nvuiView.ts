@@ -25,7 +25,7 @@ import {
   pocketsStr,
   leaveSquareHandler,
   RegexParserKeyboardEventHandler,
-  AdvancedBlindModeCommandsHandler,
+  AdvancedBlindModeCommands,
   type RegexParserKeyboardActionsType,
 } from 'lib/nvui/chess';
 import {
@@ -313,7 +313,7 @@ function boardEventsHook(
           if (!currentActiveSquare) {
             return;
           }
-          AdvancedBlindModeCommandsHandler.execute('announcePossibleCaptures')!(
+          AdvancedBlindModeCommands.announcePossibleCaptures(
             ctrl.turnColor(),
             ctrl.chessground,
             ctrl.data.game.variant.key,
@@ -353,14 +353,14 @@ function boardEventsHook(
               action = 'moveRight';
               break;
           }
-          AdvancedBlindModeCommandsHandler.execute(action!)?.(isWhite, currentActiveSquare, borderSound);
+          AdvancedBlindModeCommands[action!](isWhite, currentActiveSquare, borderSound);
         },
       },
       {
         name: 'lastMoveAnnouncement',
         regex: announce_last_move_regex,
         action: () => {
-          AdvancedBlindModeCommandsHandler.execute('announceLastMove')!();
+          AdvancedBlindModeCommands.announceLastMove();
         },
       },
       {
@@ -370,14 +370,14 @@ function boardEventsHook(
           if (!currentActiveSquare) {
             return;
           }
-          AdvancedBlindModeCommandsHandler.execute('announceSquare')!(currentActiveSquare);
+          AdvancedBlindModeCommands.announceSquare(currentActiveSquare);
         },
       },
       {
         name: 'announceCurrentTime',
         regex: announce_current_time_regex,
         action: () => {
-          AdvancedBlindModeCommandsHandler.execute('announceTime')!();
+          AdvancedBlindModeCommands.announceTime();
         },
       },
     ];
@@ -412,7 +412,7 @@ function boardEventsHook(
           if (!currentActiveSquare) {
             return;
           }
-          AdvancedBlindModeCommandsHandler.execute('jumpToRank')!(currentActiveSquare, rank);
+          AdvancedBlindModeCommands.jumpToRank(currentActiveSquare, rank);
         },
       })
       .registerInputPattern({
@@ -423,7 +423,7 @@ function boardEventsHook(
           if (!currentActiveSquare) {
             return;
           }
-          AdvancedBlindModeCommandsHandler.execute('jumpToFile')!(currentActiveSquare, file);
+          AdvancedBlindModeCommands.jumpToFile(currentActiveSquare, file);
         },
       })
       .registerInputPattern({
@@ -496,13 +496,7 @@ function boardEventsHook(
               break;
           }
 
-          AdvancedBlindModeCommandsHandler.execute('jumpToPiece')!(
-            reverse,
-            piece,
-            currentActiveSquare,
-            selectSound,
-            errorSound,
-          );
+          AdvancedBlindModeCommands.jumpToPiece(reverse, piece, currentActiveSquare, selectSound, errorSound);
         },
       })
       .registerInputPattern({

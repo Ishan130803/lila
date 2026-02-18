@@ -44,8 +44,15 @@ export const castling_moves_regex: string = `(o|O)`;
 export const announce_last_move_regex: string = '0';
 export const announce_current_square_regex: string = `;`;
 export const announce_current_time_regex: string = 'zt';
-export const announce_possible_captures_regex: string = 'zs';
+export const announce_possible_captures_regex: string = 'zc';
 
 export const find_piece_regex: string = `(f|F)${unite_regex(knight_regex, bishop_regex, rook_regex, queen_regex, king_regex)}`;
+
+export const propose_takeback_regex: string = 'zpt';
+export const resign_regex: string = 'zr';
+export const offer_draw_regex: string = 'zod';
+export const abort_game_regex: string = 'zag';
+export const announce_last_captured_piece_regex: string = 'zlc';
+export const announce_opponent_name_regex: string = 'zop';
 
 // export const all_moves : string = `(${pawn_moves})|(${piece_moves})|(${king_moves})`;

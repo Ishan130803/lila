@@ -474,17 +474,6 @@ export const AdvancedBlindModeCommands: Commands = {
   },
 };
 
-export const AdvancedBlindModeCommandsHandler = {
-  execute: <K extends keyof Commands>(commandID: K): Commands[K] | undefined => {
-    console.log(Object.keys(AdvancedBlindModeCommands));
-    console.log();
-    if (Object.keys(AdvancedBlindModeCommands).includes(commandID)) {
-      return AdvancedBlindModeCommands[commandID];
-    }
-    return undefined;
-  },
-};
-
 export class RegexDFA {
   currentState: string;
   dfa: DFA;
